@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pick Your Interests</title>
+  <link rel="stylesheet" href="../shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Select Your Interests 💬</h1>
+    <p>Select at least 3 things you're interested in:</p>
+    <div id="interest-options" class="option-grid"></div>
+
+    <h2>Dealbreakers 🚫</h2>
+    <p>(Optional) Select up to 3 red flags:</p>
+    <div id="dealbreaker-options" class="option-grid"></div>
+
+    <p id="message" style="margin-top: 1rem;"></p>
+    <button id="continue-btn" class="woobie-button">Continue ➡️</button>
+  </div>
+
+  <script type="module">
+    const interests = [
+      "Books", "Gaming", "Music", "Art", "Nature", "Cooking",
+      "Fitness", "Travel", "Animals", "Science", "Tech", "Movies"
+    ];
+
+    const dealbreakers = [
+      "Racism", "Homophobia", "Conspiracies", "Aggression",
+      "Unreliability", "Boundary issues"
+    ];
+
+    let selectedInterests = new Set();
+    let selectedDealbreakers = new Set();
+
+    const interestContainer = document.getElementById('interest-options');
+    const dealbreakerContainer = document.getElementById('dealbreaker-options');
+    const continueBtn = document.getElementById('continue-btn');
+    const message = document.getElementById('message');
+
+    // Render interests
+    interests.forEach(interest => {
+      const btn = document.createElement('button');
+      btn.textContent = interest;
+      btn.className = 'woobie-button';
+      btn.onclick = () => toggleSelect(btn, selectedInterests, 6);
+      interestContainer.appendChild(btn);
+    });
+
+    // Render dealbreakers
+    dealbreakers.forEach(flag => {
+      const btn = document.createElement('button');
+      btn.textContent = flag;
+      btn.className = 'woobie-button';
+      btn.onclick = () => toggleSelect(btn, selectedDealbreakers, 3);
+      dealbreakerContainer.appendChild(btn);
+    });
+
+    function toggleSelect(button, set, max) {
+      const label = button.textContent;
+      if (set.has(label)) {
+        set.delete(label);
+        button.classList.remove('selected');
+      } else if (set.size < max) {
+        set.add(label);
+        button.classList.add('selected');
+      }
+    }
+
+    continueBtn.onclick = () => {
+      if (selectedInterests.size < 3) {
+        message.textContent = 'Please pick at least 3 interests.';
+        return;
+      }
+
+      localStorage.setItem('woobieInterests', JSON.stringify([...selectedInterests]));
+      localStorage.setItem('woobieDealbreakers', JSON.stringify([...selectedDealbreakers]));
+
+      window.location.href = '/bio/index.html';
+    };
+  </script>
+</body>
+</html>

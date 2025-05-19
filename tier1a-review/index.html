@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tier 1a Review</title>
+  <link rel="stylesheet" href="../shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Review Your Answers 📝</h1>
+    <div id="qa-container"></div>
+
+    <div id="vote-section" style="display:none;">
+      <p>Would you like to continue with this match?</p>
+      <button id="vote-yes" class="woobie-button">👍 Yes</button>
+      <button id="vote-no" class="woobie-button">👎 No</button>
+      <p id="vote-waiting" style="display:none;">Waiting for your match's vote...</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from '../shared/firebase-config.js';
+    import { ref, onValue, set } from 'firebase/database';
+
+    const username = localStorage.getItem('woobieUsername');
+    const matchID = localStorage.getItem('woobieMatchID');
+
+    const allAnswersRef = ref(db, `matches/${matchID}/tier1a`);
+    const voteRef = ref(db, `matches/${matchID}/tier1aVotes/${username}`);
+    const allVotesRef = ref(db, `matches/${matchID}/tier1aVotes`);
+
+    onValue(allAnswersRef, snap => {
+      const all = snap.val();
+      if (!all || Object.keys(all).length < 2) return;
+
+      const partner = Object.keys(all).find(k => k !== username);
+      const mine = all[username];
+      const theirs = all[partner];
+
+      const container = document.getElementById('qa-container');
+      container.innerHTML = '<h2>Your Answers vs Your Match</h2>';
+      for (let i = 0; i < mine.length; i++) {
+        container.innerHTML += `
+          <div class="qa-block">
+            <p><strong>Q${i + 1}:</strong> ${mine[i].question}</p>
+            <p><strong>You:</strong> ${mine[i].value}</p>
+            <p><strong>Match:</strong> ${theirs[i].value}</p>
+          </div>
+        `;
+      }
+      document.getElementById('vote-section').style.display = 'block';
+    });
+
+    document.getElementById('vote-yes').onclick = () => handleVote(true);
+    document.getElementById('vote-no').onclick = () => handleVote(false);
+
+    function handleVote(value) {
+      set(voteRef, value);
+      document.getElementById('vote-yes').style.display = 'none';
+      document.getElementById('vote-no').style.display = 'none';
+      document.getElementById('vote-waiting').style.display = 'block';
+    }
+
+    onValue(allVotesRef, snap => {
+      const all = snap.val();
+      if (!all || Object.keys(all).length < 2) return;
+
+      const bothYes = Object.values(all).every(v => v === true);
+      if (bothYes) {
+        window.location.href = '/tier1b/index.html';
+      } else {
+        window.location.href = '/goodbye.html';
+      }
+    });
+  </script>
+</body>
+</html>

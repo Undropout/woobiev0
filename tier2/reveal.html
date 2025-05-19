@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tier 2 Reward Reveal</title>
+  <link rel="stylesheet" href="../shared/style.css" />
+  <style>
+    #image-adjust-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: black;
+      z-index: 2000;
+      padding: 2rem;
+      overflow: auto;
+      color: #33ff33;
+    }
+    #image-adjust-modal canvas {
+      display: block;
+      margin: 1rem auto;
+      border: 1px solid #33ff33;
+    }
+    #image-adjust-modal button,
+    #image-adjust-modal input[type="range"],
+    #image-adjust-modal input[type="text"] {
+      display: block;
+      margin: 1rem auto;
+      width: 100%;
+    }
+    #image-adjust-modal .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin: 1rem 0;
+    }
+    .close-row {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏱 See What Your Match Shared</h1>
+    <p>You both made it through Tier 2! Here's the reward your match chose to send:</p>
+
+    <div id="reward-box">
+      <p>Loading reward...</p>
+    </div>
+    <button onclick="window.location.href='/shared/history.html'">📖 Our Story So Far</button>
+
+    <div id="vote-section" style="display:none;">
+      <h2>Would you like to continue to Tier 3?</h2>
+      <button class="woobie-button" id="vote-yes">👍 Yes</button>
+      <button class="woobie-button" id="vote-no">👎 No</button>
+      <p id="vote-waiting" style="display:none;">Waiting for your match's vote...</p>
+    </div>
+  </div>
+
+  <div id="image-adjust-modal">
+    <h2>🎨 Customize the Image</h2>
+    <canvas id="preview-canvas" width="128" height="128"></canvas>
+    <div class="controls">
+      <button data-color="#33ff33" style="background:#33ff33;">Green</button>
+      <button data-color="#00ffff" style="background:#00ffff;">Cyan</button>
+      <button data-color="#ff9900" style="background:#ff9900;">Amber</button>
+      <button data-color="#ff66ff" style="background:#ff66ff;">Pink</button>
+    </div>
+    <label>Threshold:</label>
+    <input type="range" id="threshold-slider" min="0" max="255" value="128">
+    <label>Contrast:</label>
+    <input type="range" id="contrast-slider" min="-100" max="100" value="0">
+    <label>Alt Text:</label>
+    <input type="text" id="alt-text" maxlength="140" placeholder="Describe the image">
+    <div class="close-row">
+      <button class="woobie-button" id="close-editor-top">Close</button>
+      <button class="woobie-button" id="close-editor">Close</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from '../shared/firebase-config.js';
+    import { ref, get, set, onValue } from 'firebase/database';
+
+    const userID = localStorage.getItem('woobieUsername');
+    const matchID = localStorage.getItem('woobieMatchID');
+
+    const rewardBox = document.getElementById('reward-box');
+    const voteYes = document.getElementById('vote-yes');
+    const voteNo = document.getElementById('vote-no');
+    const voteWait = document.getElementById('vote-waiting');
+    const voteSection = document.getElementById('vote-section');
+
+    const tier2Ref = ref(db, `matches/${matchID}/tier2`);
+    const voteRef = ref(db, `matches/${matchID}/tier2Votes/${userID}`);
+    const allVotesRef = ref(db, `matches/${matchID}/tier2Votes`);
+
+    get(tier2Ref).then(snap => {
+      const all = snap.val();
+      if (!all || Object.keys(all).length < 2) {
+        rewardBox.innerHTML = '<p>Waiting for your match to submit their reward...</p>';
+        return;
+      }
+
+      const partner = Object.keys(all).find(k => k !== userID);
+      const reward = all[partner];
+      rewardBox.innerHTML = '<div style="border:1px solid #33ff33; padding:1rem;">';
+      if (reward.text) {
+        rewardBox.innerHTML += `<p><strong>Text:</strong> ${reward.text}</p>`;
+      }
+      if (reward.imageURL) {
+        rewardBox.innerHTML += `<p><strong>Image:</strong><br><img src="${reward.imageURL}" alt="${reward.alt || 'Image'}" style="max-width:100%; max-height:200px; cursor:pointer;" onclick="openEditor('${reward.imageURL}')"></p>`;
+      }
+      if (reward.audioURL) {
+        rewardBox.innerHTML += `<p><strong>Audio:</strong><br><audio controls src="${reward.audioURL}"></audio></p>`;
+      }
+      rewardBox.innerHTML += '</div>';
+      voteSection.style.display = 'block';
+    });
+
+    voteYes.onclick = () => {
+      set(voteRef, true);
+      voteYes.style.display = 'none';
+      voteNo.style.display = 'none';
+      voteWait.style.display = 'block';
+    };
+
+    voteNo.onclick = () => {
+      set(voteRef, false);
+      voteYes.style.display = 'none';
+      voteNo.style.display = 'none';
+      voteWait.style.display = 'block';
+    };
+
+    onValue(allVotesRef, snap => {
+      const votes = snap.val();
+      if (!votes || Object.keys(votes).length < 2) return;
+      const bothYes = Object.values(votes).every(v => v === true);
+      if (bothYes) {
+        window.location.href = '/tier2/send.html';
+
+      } else {
+        window.location.href = '/goodbye.html';
+      }
+    });
+
+    const modal = document.getElementById('image-adjust-modal');
+    const canvas = document.getElementById('preview-canvas');
+    const ctx = canvas.getContext('2d');
+    const thresholdSlider = document.getElementById('threshold-slider');
+    const contrastSlider = document.getElementById('contrast-slider');
+    const altInput = document.getElementById('alt-text');
+    const closeEditor = document.getElementById('close-editor');
+    const closeEditorTop = document.getElementById('close-editor-top');
+    let currentImg = new Image();
+    let tint = '#33ff33';
+
+    window.openEditor = (src) => {
+      currentImg = new Image();
+      currentImg.crossOrigin = "anonymous";
+      currentImg.onload = () => drawImage();
+      currentImg.src = src;
+      modal.style.display = 'block';
+    };
+
+    closeEditor.onclick = () => {
+      modal.style.display = 'none';
+    };
+    closeEditorTop.onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    document.querySelectorAll('[data-color]').forEach(btn => {
+      btn.onclick = () => {
+        tint = btn.dataset.color;
+        drawImage();
+      };
+    });
+
+    [thresholdSlider, contrastSlider].forEach(slider => {
+      slider.oninput = () => drawImage();
+    });
+
+    function drawImage() {
+      const scale = 128 / Math.max(currentImg.width, currentImg.height);
+      const w = Math.round(currentImg.width * scale);
+      const h = Math.round(currentImg.height * scale);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(currentImg, 0, 0, w, h);
+      let imageData = ctx.getImageData(0, 0, w, h);
+      let data = imageData.data;
+      const t = +thresholdSlider.value;
+      const c = +contrastSlider.value / 100;
+      const { r, g, b } = hexToRgb(tint);
+
+      for (let i = 0; i < data.length; i += 4) {
+        let v = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+        v = ((v - 128) * c + 128);
+        const band = Math.round((v / 255) * 3);
+        const multiplier = [0, 0.4, 0.7, 1][band];
+        data[i] = r * multiplier;
+        data[i + 1] = g * multiplier;
+        data[i + 2] = b * multiplier;
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function hexToRgb(hex) {
+      const bigint = parseInt(hex.slice(1), 16);
+      return {
+        r: (bigint >> 16) & 255,
+        g: (bigint >> 8) & 255,
+        b: bigint & 255
+      };
+    }
+  </script>
+</body>
+</html>

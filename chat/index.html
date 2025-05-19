@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Woobie Chatroom</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="chat-container">
+    <h2>Woobie Chat</h2>
+    <pre id="ascii-art">
+__        __          _     _       
+\ \      / /__   ___ | |__ (_) ___    
+ \ \ /\ / / _ \ / _ \| '_ \| |/ _ \ 
+  \ V  V / (_) | (_) | |_) | |  __/  
+   \_/\_/ \___/ \___/|_.__/|_|\___| </pre>
+
+    <button class="woobie-button" id="history-btn">📖 Our Story</button>
+
+    <div id="messages" aria-live="polite" role="log"></div>
+
+    <input id="message" type="text" placeholder="Type a message...">
+    <button id="send-btn" class="woobie-button">Send</button>
+
+    <div id="emoji-bar">
+      <button onclick="insertEmote('👋')">wave</button>
+      <button onclick="insertEmote('💃🕺')">dance</button>
+      <button onclick="insertEmote('🍻🥂')">cheers</button>
+      <button onclick="insertEmote('👍')">thumbsup</button>
+      <button onclick="insertEmote('🤗🫂')">hug</button>
+    </div>
+
+    <label for="image-upload">Upload an image</label>
+    <input type="file" id="image-upload" accept="image/*">
+  </div>
+
+  <!-- Scanline aesthetic -->
+  <div id="scanlines" aria-hidden="true"></div>
+
+  <div id="image-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; align-items:center; justify-content:center; z-index:1000;">
+    <img id="modal-img" style="max-width:90vw; max-height:90vh; border: 3px solid #33ff33;">
+  </div>
+
+  <!-- 🖼️ Image Adjustment Modal -->
+  <div id="image-adjust-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background-color:black; z-index:2000; padding:2rem; overflow:auto;">
+    <h2 style="color:#33ff33">Image Adjustment 🖼️</h2>
+    <canvas id="chat-preview-canvas" width="128" height="128" style="display:block; margin: 0 auto 1rem auto; border: 1px solid #33ff33;"></canvas>
+
+    <div style="display:flex; justify-content:center; gap:1rem; margin-bottom:1rem;">
+      <button class="color-btn" data-color="#33ff33" style="background:#33ff33;"></button>
+      <button class="color-btn" data-color="#00ffff" style="background:#00ffff;"></button>
+      <button class="color-btn" data-color="#ff9900" style="background:#ff9900;"></button>
+      <button class="color-btn" data-color="#ff66ff" style="background:#ff66ff;"></button>
+    </div>
+
+    <label for="chat-threshold" style="color:#33ff33">Threshold</label>
+    <input type="range" id="chat-threshold" min="0" max="255" value="128" style="width:100%;" />
+
+    <label for="chat-contrast" style="color:#33ff33">Contrast</label>
+    <input type="range" id="chat-contrast" min="-100" max="100" value="0" style="width:100%;" />
+
+    <label for="chat-image-alt" style="color:#33ff33; display:block; margin-top:1rem;">Alt text (140 characters):</label>
+    <input type="text" id="chat-image-alt" maxlength="140" style="width:100%; margin-bottom:1rem;" />
+
+    <div style="display:flex; justify-content:space-between;">
+      <button id="chat-cancel-upload" class="close-adjust" style="background:#222; color:#ff3333; padding:0.5rem 1rem; border:1px solid #ff3333; cursor:pointer;">Cancel</button>
+      <button id="chat-send-upload" style="background:#000; color:#33ff33; padding:0.5rem 1rem; border:1px solid #33ff33; cursor:pointer;">Send Image ➡️</button>
+    </div>
+  </div>
+
+  <!-- 🕘 History Modal -->
+<!-- 🕘 History Modal -->
+<div id="history-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background-color:rgba(0,0,0,0.95); z-index:3000; padding:2rem; display:flex; align-items:center; justify-content:center;">
+  <div style="background:#000; border:1px solid #33ff33; padding:1rem; max-width:90vw; max-height:90vh; overflow-y:auto;">
+    <div id="history-content" style="color:#33ff33; font-family:monospace; overflow-y:auto;"></div>
+    <button id="close-history" style="margin-top:1rem; background:#222; color:#ff3333; border:1px solid #ff3333; padding:0.5rem 1rem; float:right;">Close</button>
+  </div>
+</div>
+
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

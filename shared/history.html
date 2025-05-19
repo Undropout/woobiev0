@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Our Story</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    details {
+      margin-bottom: 1rem;
+      border: 1px solid #33ff33;
+      border-radius: 5px;
+      padding: 0.5rem;
+      background-color: #000;
+      color: #fff;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: bold;
+      color: #33ff33;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
+    details[open] summary::after {
+      content: "▲";
+      float: right;
+    }
+    details summary::after {
+      content: "▼";
+      float: right;
+    }
+    p {
+      margin: 0.25rem 0 0.5rem;
+    }
+    img.greyscale {
+      image-rendering: pixelated;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 150px;
+      filter: grayscale(100%) contrast(150%) saturate(0%);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📖 Our Story</h1>
+    <div id="timeline"></div>
+  </div>
+
+  <script type="module">
+    import { db } from '../shared/firebase-config.js';
+    import { ref, get } from 'firebase/database';
+
+    const username = localStorage.getItem('woobieUsername');
+    const matchID = localStorage.getItem('woobieMatchID');
+    const timeline = document.getElementById('timeline');
+
+    const tierLabelMap = {
+      tier1a: '1A',
+      tier1b: '1B',
+      tier2: '2',
+      tier3: '3'
+    };
+
+    const sections = [
+      { key: 'bios', label: '🧬 Bios', render: (data, partner) => {
+        return `<p><strong>Your Bio:</strong> ${data[username]}</p><p><strong>Your Match:</strong> ${data[partner]}</p>`;
+      }},
+      ...['tier1a','tier1b','tier2','tier3'].map((key) => ({
+        key,
+        label: `Tier ${tierLabelMap[key]} Answers`,
+        render: (data, partner) => {
+          let out = '';
+          const myAnswers = Array.isArray(data[username]) ? data[username] : data[username]?.answers || [];
+          const theirAnswers = Array.isArray(data[partner]) ? data[partner] : data[partner]?.answers || [];
+          myAnswers.forEach((ans, i) => {
+            out += `<p><strong>Q${i+1}</strong></p><p>You: ${ans.value || ans}</p><p>Match: ${theirAnswers[i]?.value || theirAnswers[i] || ''}</p>`;
+          });
+          return out;
+        }
+      })),
+      {
+        key: 'tier1bLetters', label: '💌 Tier 1B Letters', render: (data, partner) => {
+          let out = '';
+          out += `<details><summary>Your Letter</summary><p>${data[username] || '(no message)'}</p></details>`;
+          out += `<details><summary>Match's Letter</summary><p>${data[partner] || '(no message)'}</p></details>`;
+          return out;
+        }
+      },
+      {
+  key: 'tier2Rewards', label: '🎁 Tier 2 Rewards', render: (data, partner) => {
+    const mine = data[username] || {};
+    const theirs = data[partner] || {};
+    let out = '';
+
+    if (mine.text || mine.imageURL || mine.audioURL) {
+      out += `<details><summary>Your Reward</summary>`;
+      if (mine.text) out += `<p><strong>Text:</strong> ${mine.text}</p>`;
+      if (mine.imageURL) out += `<p><img class="greyscale" src="${mine.imageURL}" alt="${mine.alt || 'image'}" /></p>`;
+      if (mine.audioURL) out += `<p><audio controls src="${mine.audioURL}"></audio></p>`;
+      out += `</details>`;
+    }
+
+    if (theirs.text || theirs.imageURL || theirs.audioURL) {
+      out += `<details><summary>Match's Reward</summary>`;
+      if (theirs.text) out += `<p><strong>Text:</strong> ${theirs.text}</p>`;
+      if (theirs.imageURL) out += `<p><img class="greyscale" src="${theirs.imageURL}" alt="${theirs.alt || 'image'}" /></p>`;
+      if (theirs.audioURL) out += `<p><audio controls src="${theirs.audioURL}"></audio></p>`;
+      out += `</details>`;
+    }
+
+    return out || '<p>(No rewards found)</p>';
+  }
+}
+
+    ];
+
+    for (const section of sections) {
+      const refPath = section.key === 'tier2Rewards' ? `matches/${matchID}/tier2Rewards` : `matches/${matchID}/${section.key}`;
+      const dataRef = ref(db, refPath);
+      get(dataRef).then(snap => {
+        const data = snap.val();
+        if (!data || Object.keys(data).length < 1) return;
+        const partner = typeof data === 'object' && Object.keys(data).find(k => k !== username);
+        const block = document.createElement('details');
+        const summary = document.createElement('summary');
+        summary.textContent = section.label;
+        block.appendChild(summary);
+        const content = document.createElement('div');
+        try {
+          content.innerHTML = section.render(data, partner);
+        } catch (err) {
+          content.innerHTML = '<p style="color:#ff6666">Error displaying this section.</p>';
+        }
+        block.appendChild(content);
+        timeline.appendChild(block);
+      });
+    }
+  </script>
+</body>
+</html>

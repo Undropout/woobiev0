@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Woobie</title>
+  <link rel="stylesheet" href="./shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome to Woobie 💬</h1>
+    <p>Your journey to meaningful connection starts here.</p>
+    <button id="start-button" class="woobie-button">Start Now ➡️</button>
+  </div>
+
+  <script>
+    document.getElementById('start-button').onclick = () => {
+      // Clear local storage to reset any prior session
+      localStorage.clear();
+      window.location.href = './name-picker/index.html';
+    };
+  </script>
+</body>
+</html>

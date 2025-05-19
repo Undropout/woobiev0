@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bio Reveal</title>
+  <link rel="stylesheet" href="../shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🧬 Get to Know Each Other</h1>
+    <p>You both chose to continue! Here's a glimpse of each other:</p>
+
+    <div id="bios">
+      <p>Loading bios...</p>
+    </div>
+    <button onclick="window.location.href='/shared/history.html'">📖 Our Story So Far</button>
+
+    <button class="woobie-button" id="continue-btn" style="display:none;">➡️ Continue to Tier 1b</button>
+  </div>
+
+  <script type="module">
+    import { db } from '../shared/firebase-config.js';
+    import { ref, get } from 'firebase/database';
+
+    const username = localStorage.getItem('woobieUsername');
+    const matchID = localStorage.getItem('woobieMatchID');
+    const biosDiv = document.getElementById('bios');
+    const continueBtn = document.getElementById('continue-btn');
+
+    if (!username || !matchID) {
+      alert("Missing username or match ID");
+    }
+
+    const biosRef = ref(db, `matches/${matchID}/bios`);
+
+    get(biosRef).then(snap => {
+      const all = snap.val();
+      if (!all || Object.keys(all).length < 2) {
+        biosDiv.innerHTML = '<p>Still waiting on your match to submit their bio...</p>';
+        return;
+      }
+
+      const partner = Object.keys(all).find(k => k !== username);
+
+      biosDiv.innerHTML = `
+        <div style="border:1px solid #33ff33; padding:1rem; margin-bottom:1rem;">
+          <h2>Your Match's Bio:</h2>
+          <p>${all[partner]}</p>
+        </div>
+        <div style="border:1px solid #999999; padding:1rem;">
+          <h2>Your Bio:</h2>
+          <p>${all[username]}</p>
+        </div>
+      `;
+
+      continueBtn.style.display = 'block';
+    });
+
+    continueBtn.onclick = () => {
+      window.location.href = '/tier1b/index.html';
+    };
+  </script>
+</body>
+</html>

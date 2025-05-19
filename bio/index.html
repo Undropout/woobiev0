@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Write Your Bio</title>
+  <link rel="stylesheet" href="../shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Write a Short Bio 📘</h1>
+    <p>This will help your match get to know you. Max 250 words.</p>
+    <textarea id="bio-input" rows="8" placeholder="Write a little about yourself..."></textarea>
+    <p id="bio-count">0 / 250 words</p>
+    <p id="bio-warning" style="color: #ff6666"></p>
+    <button id="submit-bio" class="woobie-button">Submit ➡️</button>
+  </div>
+
+  <script type="module">
+    import { db } from '../shared/firebase-config.js';
+    import { ref, set } from 'firebase/database';
+
+    const input = document.getElementById('bio-input');
+    const count = document.getElementById('bio-count');
+    const warning = document.getElementById('bio-warning');
+    const button = document.getElementById('submit-bio');
+
+    let username = localStorage.getItem('woobieUsername');
+    let matchID = localStorage.getItem('woobieMatchID');
+
+    // Fallback for dev testing
+    if (!matchID && username) {
+      matchID = 'debug-match-' + username;
+      localStorage.setItem('woobieMatchID', matchID);
+    }
+
+    if (!username || !matchID) {
+      alert("Missing username or match ID");
+      button.disabled = true;
+    }
+
+    input.addEventListener('input', () => {
+      const words = input.value.trim().split(/\s+/).filter(Boolean);
+      count.textContent = `${words.length} / 250 words`;
+      if (words.length > 250) {
+        warning.textContent = 'Too many words! Please stay under 250.';
+        button.disabled = true;
+      } else {
+        warning.textContent = '';
+        button.disabled = false;
+      }
+    });
+
+    button.onclick = () => {
+      const text = input.value.trim();
+      const words = text.split(/\s+/).filter(Boolean);
+      const repeated = /(.)\1{20,}/.test(text);
+
+      if (words.length > 250 || repeated) {
+        warning.textContent = 'Please shorten your bio and avoid repeated characters.';
+        return;
+      }
+
+      localStorage.setItem('woobieBio', text);
+      const bioRef = ref(db, `matches/${matchID}/bios/${username}`);
+      set(bioRef, text).then(() => {
+        window.location.href = '/tier1a/index.html';
+      });
+    };
+  </script>
+</body>
+</html>
