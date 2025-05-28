@@ -64,80 +64,122 @@
       tier3: '3'
     };
 
+    function renderStyledName(name, mode) {
+      return `<strong class="woobie-${mode}">${name}</strong>`;
+    }
+
     const sections = [
-      { key: 'bios', label: '🧬 Bios', render: (data, partner) => {
-        return `<p><strong>Your Bio:</strong> ${data[username]}</p><p><strong>Your Match:</strong> ${data[partner]}</p>`;
-      }},
-      ...['tier1a','tier1b','tier2','tier3'].map((key) => ({
+      {
+        key: 'bios',
+        label: '🧬 Bios',
+        render: (data, partner, modes) => {
+          return `<p>${renderStyledName(username, modes[username])}: ${data[username]}</p>
+                  <p>${renderStyledName(partner, modes[partner])}: ${data[partner]}</p>`;
+        }
+      },
+      ...['tier1a', 'tier1b', 'tier2', 'tier3'].map(key => ({
         key,
         label: `Tier ${tierLabelMap[key]} Answers`,
-        render: (data, partner) => {
+        render: (data, partner, modes) => {
           let out = '';
-          const myAnswers = Array.isArray(data[username]) ? data[username] : data[username]?.answers || [];
-          const theirAnswers = Array.isArray(data[partner]) ? data[partner] : data[partner]?.answers || [];
+          const myRaw = data[username];
+          const theirRaw = data[partner];
+
+          const myAnswers = Array.isArray(myRaw)
+            ? myRaw
+            : Array.isArray(myRaw?.answers)
+              ? myRaw.answers
+              : [];
+
+          const theirAnswers = Array.isArray(theirRaw)
+            ? theirRaw
+            : Array.isArray(theirRaw?.answers)
+              ? theirRaw.answers
+              : [];
+
+          if (!myAnswers.length && !theirAnswers.length) {
+            return '<p>(No answers available yet)</p>';
+          }
+
           myAnswers.forEach((ans, i) => {
-            out += `<p><strong>Q${i+1}</strong></p><p>You: ${ans.value || ans}</p><p>Match: ${theirAnswers[i]?.value || theirAnswers[i] || ''}</p>`;
+            out += `<p><strong>Q${i + 1}</strong></p>`;
+            out += `<p>${renderStyledName(username, modes[username])}: ${ans?.value || ans || ''}</p>`;
+            out += `<p>${renderStyledName(partner, modes[partner])}: ${theirAnswers[i]?.value || theirAnswers[i] || ''}</p>`;
           });
+
           return out;
         }
       })),
       {
-        key: 'tier1bLetters', label: '💌 Tier 1B Letters', render: (data, partner) => {
-          let out = '';
-          out += `<details><summary>Your Letter</summary><p>${data[username] || '(no message)'}</p></details>`;
-          out += `<details><summary>Match's Letter</summary><p>${data[partner] || '(no message)'}</p></details>`;
-          return out;
+        key: 'tier1bLetters',
+        label: '💌 Tier 1B Letters',
+        render: (data, partner, modes) => {
+          return `<details><summary>${renderStyledName(username, modes[username])}'s Letter</summary><p>${data[username] || '(no message)'}</p></details>
+                  <details><summary>${renderStyledName(partner, modes[partner])}'s Letter</summary><p>${data[partner] || '(no message)'}</p></details>`;
         }
       },
       {
-  key: 'tier2Rewards', label: '🎁 Tier 2 Rewards', render: (data, partner) => {
-    const mine = data[username] || {};
-    const theirs = data[partner] || {};
-    let out = '';
+        key: 'tier2Rewards',
+        label: '🎁 Tier 2 Rewards',
+        render: (data, partner, modes) => {
+          const mine = data[username] || {};
+          const theirs = data[partner] || {};
+          let out = '';
 
-    if (mine.text || mine.imageURL || mine.audioURL) {
-      out += `<details><summary>Your Reward</summary>`;
-      if (mine.text) out += `<p><strong>Text:</strong> ${mine.text}</p>`;
-      if (mine.imageURL) out += `<p><img class="greyscale" src="${mine.imageURL}" alt="${mine.alt || 'image'}" /></p>`;
-      if (mine.audioURL) out += `<p><audio controls src="${mine.audioURL}"></audio></p>`;
-      out += `</details>`;
-    }
+          if (mine.text || mine.imageURL || mine.audioURL) {
+            out += `<details><summary>${renderStyledName(username, modes[username])}'s Reward</summary>`;
+            if (mine.text) out += `<p><strong>Text:</strong> ${mine.text}</p>`;
+            if (mine.imageURL) out += `<p><img class="greyscale" src="${mine.imageURL}" alt="${mine.alt || 'image'}" /></p>`;
+            if (mine.audioURL) out += `<p><audio controls src="${mine.audioURL}"></audio></p>`;
+            out += `</details>`;
+          }
 
-    if (theirs.text || theirs.imageURL || theirs.audioURL) {
-      out += `<details><summary>Match's Reward</summary>`;
-      if (theirs.text) out += `<p><strong>Text:</strong> ${theirs.text}</p>`;
-      if (theirs.imageURL) out += `<p><img class="greyscale" src="${theirs.imageURL}" alt="${theirs.alt || 'image'}" /></p>`;
-      if (theirs.audioURL) out += `<p><audio controls src="${theirs.audioURL}"></audio></p>`;
-      out += `</details>`;
-    }
+          if (theirs.text || theirs.imageURL || theirs.audioURL) {
+            out += `<details><summary>${renderStyledName(partner, modes[partner])}'s Reward</summary>`;
+            if (theirs.text) out += `<p><strong>Text:</strong> ${theirs.text}</p>`;
+            if (theirs.imageURL) out += `<p><img class="greyscale" src="${theirs.imageURL}" alt="${theirs.alt || 'image'}" /></p>`;
+            if (theirs.audioURL) out += `<p><audio controls src="${theirs.audioURL}"></audio></p>`;
+            out += `</details>`;
+          }
 
-    return out || '<p>(No rewards found)</p>';
-  }
-}
-
+          return out || '<p>(No rewards found)</p>';
+        }
+      }
     ];
 
-    for (const section of sections) {
-      const refPath = section.key === 'tier2Rewards' ? `matches/${matchID}/tier2Rewards` : `matches/${matchID}/${section.key}`;
-      const dataRef = ref(db, refPath);
-      get(dataRef).then(snap => {
-        const data = snap.val();
-        if (!data || Object.keys(data).length < 1) return;
-        const partner = typeof data === 'object' && Object.keys(data).find(k => k !== username);
-        const block = document.createElement('details');
-        const summary = document.createElement('summary');
-        summary.textContent = section.label;
-        block.appendChild(summary);
-        const content = document.createElement('div');
-        try {
-          content.innerHTML = section.render(data, partner);
-        } catch (err) {
-          content.innerHTML = '<p style="color:#ff6666">Error displaying this section.</p>';
-        }
-        block.appendChild(content);
-        timeline.appendChild(block);
-      });
-    }
+    const modesRef = ref(db, `matches/${matchID}/modes`);
+    get(modesRef).then(modesSnap => {
+      const modes = modesSnap.val() || {};
+
+      for (const section of sections) {
+        const refPath =
+          section.key === 'tier2Rewards'
+            ? `matches/${matchID}/tier2Rewards`
+            : `matches/${matchID}/${section.key}`;
+
+        const dataRef = ref(db, refPath);
+        get(dataRef).then(snap => {
+          const data = snap.val();
+          if (!data || Object.keys(data).length < 1) return;
+          const partner = typeof data === 'object' && Object.keys(data).find(k => k !== username);
+
+          const block = document.createElement('details');
+          const summary = document.createElement('summary');
+          summary.textContent = section.label;
+          block.appendChild(summary);
+
+          const content = document.createElement('div');
+          try {
+            content.innerHTML = section.render(data, partner, modes);
+          } catch (err) {
+            content.innerHTML = '<p style="color:#ff6666">Error displaying this section.</p>';
+          }
+
+          block.appendChild(content);
+          timeline.appendChild(block);
+        });
+      }
+    });
   </script>
 </body>
 </html>

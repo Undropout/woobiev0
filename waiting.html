@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Waiting for Match...</title>
+    <link rel="stylesheet" href="./shared/style.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>⏳ Waiting for a Woobie Friend...</h1>
+        <p id="statusMessage">Please wait, we're finding you a match!</p>
+        <p><small>Your Match ID (for listening): <span id="matchIdDisplay"></span></small></p>
+    </div>
+    <script type="module">
+        // Basic script to show it's waiting
+        // The full listener logic will be added later
+        const matchID = localStorage.getItem('woobieMatchID');
+        if (document.getElementById('matchIdDisplay') && matchID) {
+            document.getElementById('matchIdDisplay').textContent = matchID;
+        } else {
+             document.getElementById('statusMessage').textContent = 'Error: Match ID not found in session.';
+        }
+        console.log("On waiting.html, matchID:", matchID);
+        // Add the full listener script here from previous instructions
+    </script>
+</body>
+</html>

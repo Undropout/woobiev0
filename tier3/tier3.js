@@ -1,14 +1,13 @@
 // tier3.js
 import { db } from '../shared/firebase-config.js';
-import { ref, set, get } from 'firebase/database';
+import { ref, set, get, onValue, off } from 'firebase/database';
 
-let matchID = localStorage.getItem('woobieMatchID');
-let userID = localStorage.getItem('woobieUsername');
-
-if (!matchID || !userID) {
-  alert('Missing match ID or username.');
-  throw new Error('Missing match ID or username');
-}
+const username = localStorage.getItem('woobieUsername');
+const matchID = localStorage.getItem('woobieMatchID');
+const answersRef = ref(db, `matches/${matchID}/tier3/${username}`);
+const allAnswersRef = ref(db, `matches/${matchID}/tier3`);
+const voteRef = ref(db, `matches/${matchID}/tier3Votes/${username}`);
+const allVotesRef = ref(db, `matches/${matchID}/tier3Votes`);
 
 const questions = [
   'What’s a belief you held strongly that changed over time?',
@@ -26,115 +25,106 @@ const questions = [
 ];
 
 let answers = JSON.parse(localStorage.getItem('tier3Answers') || '[]');
-let currentIndex = answers.length;
+let index = answers.length;
 
 const questionBlock = document.getElementById('question-block');
-const questionNumber = document.getElementById('question-number');
-const questionText = document.getElementById('question-text');
-const answerInput = document.getElementById('answer');
-const submitBtn = document.getElementById('submit-btn');
 const completionMessage = document.getElementById('completion-message');
 const reviewSection = document.getElementById('review-section');
+const voteSection = document.getElementById('vote-section');
+const voteYesBtn = document.getElementById('vote-yes');
+const voteNoBtn = document.getElementById('vote-no');
+const voteWaiting = document.getElementById('vote-waiting');
 
-function updateQuestion(index) {
-  questionNumber.textContent = `Question ${index + 1} of ${questions.length}`;
-  questionText.textContent = questions[index];
-  answerInput.value = answers[index] || '';
+// Inject fallback waiting message if needed
+let waitingMsg = document.getElementById('waiting-message');
+if (!waitingMsg) {
+  waitingMsg = document.createElement('div');
+  waitingMsg.id = 'waiting-message';
+  waitingMsg.innerHTML = '<p>Waiting for your match to finish answering...</p>';
+  waitingMsg.style.color = '#33ff33';
+  waitingMsg.style.textAlign = 'center';
+  waitingMsg.style.marginTop = '2rem';
+  waitingMsg.style.display = 'none';
+  questionBlock.parentNode.appendChild(waitingMsg);
 }
 
-function saveProgress() {
-  localStorage.setItem('tier3Answers', JSON.stringify(answers));
-}
-
-async function submitAnswers() {
-  const tier3Ref = ref(db, `matches/${matchID}/tier3/${userID}`);
-  await set(tier3Ref, {
-    answers,
-    timestamp: Date.now()
-  });
-  checkIfBothFinished();
-}
-
-async function checkIfBothFinished() {
-  const snapshot = await get(ref(db, `matches/${matchID}/tier3`));
-  const entries = snapshot.val() || {};
-
-  if (Object.keys(entries).length >= 2) {
-    showReview(entries);
-  } else {
+function showQuestion() {
+  if (index >= questions.length) {
     questionBlock.style.display = 'none';
-    document.getElementById('waiting-message').style.display = 'block';
+    completionMessage.style.display = 'block';
+    submitAnswers();
+    return;
   }
+
+  document.getElementById('question-number').textContent = `Question ${index + 1} of ${questions.length}`;
+  document.getElementById('question-text').textContent = questions[index];
+  document.getElementById('answer').value = answers[index] || '';
 }
 
-function showReview(data) {
-  const partnerID = Object.keys(data).find(id => id !== userID);
-  const mine = data[userID].answers;
-  const theirs = data[partnerID].answers;
+document.getElementById('submit-btn').onclick = () => {
+  const val = document.getElementById('answer').value.trim();
+  if (!val) return;
+  answers[index] = val;
+  localStorage.setItem('tier3Answers', JSON.stringify(answers));
+  index++;
+  showQuestion();
+};
 
-  reviewSection.innerHTML = '<h2>Review Answers</h2>';
-  questions.forEach((q, i) => {
-    reviewSection.innerHTML += `
-      <div class="qa-pair">
-        <p><strong>Q${i + 1}:</strong> ${q}</p>
-        <p><strong>You:</strong> ${mine[i] || ''}</p>
-        <p><strong>Match:</strong> ${theirs[i] || ''}</p>
-        <hr>
-      </div>
-    `;
-  });
-
-  reviewSection.innerHTML += `
-    <button id="vote-yes" class="woobie-button">👍 Enter Chatroom</button>
-    <button id="vote-no" class="woobie-button">👎 Not Ready</button>
-  `;
-  reviewSection.style.display = 'block';
-
-  document.getElementById('vote-yes').onclick = () => submitVote(true);
-  document.getElementById('vote-no').onclick = () => submitVote(false);
-}
-
-async function submitVote(value) {
-  await set(ref(db, `matches/${matchID}/tier3Votes/${userID}`), value);
-  waitForMutualVote();
-}
-
-async function waitForMutualVote() {
-  const snapshot = await get(ref(db, `matches/${matchID}/tier3Votes`));
-  const votes = snapshot.val() || {};
-
-  if (Object.keys(votes).length >= 2) {
-    const allYes = Object.values(votes).every(v => v === true);
-    if (allYes) {
-      window.location.href = '/chat/index.html';
-    } else {
-      reviewSection.innerHTML = '<h2>Unfortunately, your match wasn\'t ready to continue. 😔</h2>';
-    }
-  } else {
-    reviewSection.innerHTML = '<h2>Waiting for your match to vote...</h2>';
-    setTimeout(waitForMutualVote, 4000);
-  }
-}
-
-// INIT
-if (currentIndex >= questions.length) {
-  submitAnswers();
-} else {
-  updateQuestion(currentIndex);
-
-  submitBtn.onclick = () => {
-    const input = answerInput.value.trim();
-    if (!input) return;
-    answers[currentIndex] = input;
-    saveProgress();
-    currentIndex++;
-
-    if (currentIndex < questions.length) {
-      updateQuestion(currentIndex);
+function submitAnswers() {
+  set(answersRef, { answers, timestamp: Date.now() });
+  onValue(allAnswersRef, snap => {
+    const all = snap.val();
+    if (all && Object.keys(all).length >= 2) {
+      completionMessage.style.display = 'none';
+      waitingMsg.style.display = 'none';
+      renderReview(all);
     } else {
       questionBlock.style.display = 'none';
-      completionMessage.style.display = 'block';
-      submitAnswers();
+      completionMessage.style.display = 'none';
+      waitingMsg.style.display = 'block';
     }
-  };
+  });
 }
+
+function renderReview(all) {
+  const partner = Object.keys(all).find(k => k !== username);
+  if (!partner) return;
+
+  let html = '<h3>📘 Tier 3 Answers</h3>';
+  questions.forEach((q, i) => {
+    html += `
+      <details><summary><strong>${q}</strong></summary>
+      <p><strong>You:</strong> ${answers[i] || ''}</p>
+      <p><strong>Your Match:</strong> ${all[partner].answers[i] || ''}</p>
+      </details>`;
+  });
+
+  reviewSection.innerHTML = html;
+  reviewSection.style.display = 'block';
+  voteSection.style.display = 'block';
+}
+
+voteYesBtn.onclick = () => {
+  set(voteRef, true).then(waitForVotes);
+};
+
+voteNoBtn.onclick = () => {
+  set(voteRef, false).then(waitForVotes);
+};
+
+function waitForVotes() {
+  voteYesBtn.style.display = 'none';
+  voteNoBtn.style.display = 'none';
+  voteWaiting.style.display = 'block';
+
+  onValue(allVotesRef, snap => {
+    const votes = snap.val();
+    if (!votes || Object.keys(votes).length < 2) return;
+
+    const bothYes = Object.values(votes).every(v => v === true);
+    off(allVotesRef);
+    window.location.href = bothYes ? '/chat/index.html' : '/goodbye.html';
+  });
+}
+
+showQuestion();

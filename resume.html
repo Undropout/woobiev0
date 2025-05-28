@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Resuming Woobie…</title>
+  <link rel="stylesheet" href="./shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Loading your session...</h2>
+    <p id="status" style="color:#33ff33;">Please wait.</p>
+  </div>
+
+  <script type="module">
+    import { auth, db } from './shared/firebase-config.js';
+    import { onAuthStateChanged } from 'firebase/auth';
+    import { ref, get } from 'firebase/database';
+  
+    const status = document.getElementById('status');
+  
+    const stageToPath = {
+      'name-picker': '/name-picker/index.html',
+      'preferences_pending': '/preferences.html', // Assuming you'll have this
+      'interests-dealbreakers': '/interests-dealbreakers/index.html',
+      'bio': '/bio/index.html',
+      'waiting_in_queue': '/waiting.html', // IMPORTANT: Send back to waiting if still waiting
+      'tier1a': '/tier1a/index.html',
+      'tier1a-bios-revealed': '/tier1a/reveal-bios.html',
+      'tier1b': '/tier1b/index.html',
+      'tier2': '/tier2/index.html',
+      'tier2-complete': '/tier2/send.html',
+      'tier2-reveal': '/tier2/reveal.html',
+      'tier3': '/tier3/index.html',
+      'chatroom': '/chat/index.html' // Assuming 'chat' or 'matched' could be the final stage
+    };
+  
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        status.textContent = "Not logged in. Redirecting to login...";
+        setTimeout(() => window.location.href = '/auth/login.html', 1500);
+        return;
+      }
+  
+      try {
+        const userProfileSnapshot = await get(ref(db, `users/${user.uid}`));
+        const userProfileData = userProfileSnapshot.val();
+  
+        if (!userProfileData || !userProfileData.stage) {
+          status.textContent = "Setting up your Woobie profile... Redirecting to name picker.";
+          setTimeout(() => window.location.href = '/name-picker/index.html', 2000);
+          return;
+        }
+  
+        const currentMatchData = userProfileData.currentMatch;
+  
+        if (!currentMatchData || !currentMatchData.matchID || !currentMatchData.username) {
+          const initialStage = userProfileData.stage || 'name-picker';
+          const targetPath = stageToPath[initialStage] || '/name-picker/index.html';
+          status.textContent = `Welcome! Continuing to ${initialStage}...`;
+          localStorage.setItem('woobieUID', user.uid);
+          localStorage.removeItem('woobieMatchID'); // Clear stale data
+          localStorage.removeItem('woobieUsername');
+          setTimeout(() => window.location.href = targetPath, 2000);
+          return;
+        }
+  
+        // User has currentMatch data (matchID, username - Woobie name, stage)
+        const stage = currentMatchData.stage;
+        const target = stageToPath[stage] || '/name-picker/index.html';
+  
+        localStorage.setItem('woobieMatchID', currentMatchData.matchID);
+        localStorage.setItem('woobieUsername', currentMatchData.username);
+        localStorage.setItem('woobieUID', user.uid);
+  
+        // Only try to fetch match-specific profiles if the stage indicates a match is formed
+        // and not when simply 'waiting_in_queue' or in pre-match setup stages.
+        if (stage !== 'waiting_in_queue' && stage !== 'name-picker' && stage !== 'preferences_pending' && stage !== 'interests-dealbreakers' && stage !== 'bio') {
+          // This implies stages like 'tier1a', 'chatroom', etc., where /matches/{matchID}/users IS populated.
+          // The read rule for matches depends on data.child('users').hasChild(auth.uid)
+          // We need to ensure that '/matches/{matchID}/users' exists and contains the user before this read.
+          // For now, we proceed, but this is where the PERMISSION_DENIED likely occurs if the match isn't fully formed.
+  
+          // Let's check if the match users node exists and contains current user before trying to read profiles from it
+          const matchUsersNodeSnap = await get(ref(db, `matches/<span class="math-inline">\{currentMatchData\.matchID\}/users/</span>{user.uid}`));
+          if (matchUsersNodeSnap.exists()) {
+               const matchProfileSnap = await get(ref(db, `matches/<span class="math-inline">\{currentMatchData\.matchID\}/profiles/</span>{user.uid}`));
+              const matchProfile = matchProfileSnap.val();
+              if (matchProfile) {
+                  if (matchProfile.bio) localStorage.setItem('woobieBio', matchProfile.bio);
+                  if (matchProfile.interests) localStorage.setItem('woobieInterests', JSON.stringify(matchProfile.interests));
+                  if (matchProfile.dealbreakers) localStorage.setItem('woobieDealbreakers', JSON.stringify(matchProfile.dealbreakers));
+              }
+          } else if (stage !== 'waiting_in_queue') { // If not waiting, but also not in match users node, something is off
+              console.warn(`User ${user.uid} stage is ${stage} for match ${currentMatchData.matchID}, but they are not in matches/.../users. This might be a data consistency issue or stale stage.`);
+              // Potentially redirect to waiting or name-picker if data is inconsistent.
+          }
+        }
+  
+        status.textContent = `Resuming from ${stage}...`;
+        setTimeout(() => window.location.href = target, 1500);
+  
+      } catch (err) {
+        console.error("Error loading session from /resume.html:", err);
+        status.textContent = "Error loading session. Please try logging in again.";
+        // setTimeout(() => window.location.href = '/auth/login.html', 3000);
+      }
+    });
+  </script>
+</body>
+</html>

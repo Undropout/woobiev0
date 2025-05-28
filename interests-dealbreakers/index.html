@@ -3,30 +3,100 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pick Your Interests</title>
+  <title>Your Preferences</title>
   <link rel="stylesheet" href="../shared/style.css" />
+  <style>
+    .preference-group {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border: 1px dashed #33ff33;
+      border-radius: 5px;
+    }
+    .preference-group h2 {
+      margin-top: 0;
+      color: #33ff33;
+    }
+    .preference-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #00ff00;
+    }
+    .preference-group select,
+    .preference-group .multi-select-options input[type="checkbox"] + label {
+      color: #00ff00;
+      font-family: inherit;
+    }
+     .preference-group .multi-select-options div {
+      margin-bottom: 0.25rem;
+    }
+    .preference-group select {
+      width: 100%;
+      padding: 0.5rem;
+      background-color: #000;
+      border: 1px solid #00ff00;
+      color: #00ff00;
+      border-radius: 3px;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Select Your Interests 💬</h1>
-    <p>Select at least 3 things you're interested in:</p>
-    <div id="interest-options" class="option-grid"></div>
+    <h1>Your Friend Preferences 💬</h1>
+    <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
 
-    <h2>Dealbreakers 🚫</h2>
-    <p>(Optional) Select up to 3 red flags:</p>
-    <div id="dealbreaker-options" class="option-grid"></div>
+    <div class="preference-group">
+      <h2>About You</h2>
+      <label for="gender-identity">What's your gender?</label>
+      <select id="gender-identity">
+        <option value="prefer_not_to_say">Prefer not to say</option>
+        <option value="female">Female</option>
+        <option value="male">Male</option>
+        <option value="non_binary">Non-binary</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
 
-    <p id="message" style="margin-top: 1rem;"></p>
-    <button id="continue-btn" class="woobie-button">Continue ➡️</button>
+    <div class="preference-group">
+      <h2>Friend Preferences</h2>
+      <label>What gender of friend are you looking for?</label>
+      <div class="multi-select-options" id="looking-for-gender-options">
+        <div><input type="checkbox" id="lf_any" value="Any" name="lookingForGender"><label for="lf_any"> Any</label></div>
+        <div><input type="checkbox" id="lf_female" value="Female" name="lookingForGender"><label for="lf_female"> Female</label></div>
+        <div><input type="checkbox" id="lf_male" value="Male" name="lookingForGender"><label for="lf_male"> Male</label></div>
+        <div><input type="checkbox" id="lf_non_binary" value="Non-binary" name="lookingForGender"><label for="lf_non_binary"> Non-binary</label></div>
+        <div><input type="checkbox" id="lf_other" value="Other" name="lookingForGender"><label for="lf_other"> Other</label></div>
+      </div>
+    </div>
+
+    <div class="preference-group">
+      <h2>Your Interests</h2>
+      <p>Select at least 3 things you're interested in (max 6):</p>
+      <div id="interest-options" class="option-grid"></div>
+    </div>
+
+    <div class="preference-group">
+      <h2>Your Dealbreakers</h2>
+      <p>(Optional) Select up to 3 red flags:</p>
+      <div id="dealbreaker-options" class="option-grid"></div>
+    </div>
+
+    <p id="message" style="margin-top: 1rem; color: #ff6666;"></p>
+    <button id="continue-btn" class="woobie-button">Find My Woobie Friend! ➡️</button>
+
   </div>
 
   <script type="module">
-    const interests = [
+    import { db, auth } from '../shared/firebase-config.js';
+    import { ref, set, update, serverTimestamp, get } from 'firebase/database';
+    import { onAuthStateChanged } from 'firebase/auth';
+    import '../shared/logout.js'; // Handles the logout button
+
+    const predefinedInterests = [
       "Books", "Gaming", "Music", "Art", "Nature", "Cooking",
       "Fitness", "Travel", "Animals", "Science", "Tech", "Movies"
     ];
 
-    const dealbreakers = [
+    const predefinedDealbreakers = [
       "Racism", "Homophobia", "Conspiracies", "Aggression",
       "Unreliability", "Boundary issues"
     ];
@@ -36,48 +106,223 @@
 
     const interestContainer = document.getElementById('interest-options');
     const dealbreakerContainer = document.getElementById('dealbreaker-options');
+    const genderIdentitySelect = document.getElementById('gender-identity');
+    const lookingForGenderOptionsDiv = document.getElementById('looking-for-gender-options');
     const continueBtn = document.getElementById('continue-btn');
     const message = document.getElementById('message');
 
-    // Render interests
-    interests.forEach(interest => {
+    let currentUserId = null;
+    let localWoobieUsername = null;
+    let localWoobieMode = null;
+    let localWoobieEmoji = null; // Though not directly used in queue data, good to have if needed
+
+    // Populate Interests
+    predefinedInterests.forEach(interest => {
       const btn = document.createElement('button');
       btn.textContent = interest;
       btn.className = 'woobie-button';
-      btn.onclick = () => toggleSelect(btn, selectedInterests, 6);
+      btn.onclick = () => toggleSelect(btn, selectedInterests, 6, 'interests');
       interestContainer.appendChild(btn);
     });
 
-    // Render dealbreakers
-    dealbreakers.forEach(flag => {
+    // Populate Dealbreakers
+    predefinedDealbreakers.forEach(flag => {
       const btn = document.createElement('button');
       btn.textContent = flag;
       btn.className = 'woobie-button';
-      btn.onclick = () => toggleSelect(btn, selectedDealbreakers, 3);
+      btn.onclick = () => toggleSelect(btn, selectedDealbreakers, 3, 'dealbreakers');
       dealbreakerContainer.appendChild(btn);
     });
 
-    function toggleSelect(button, set, max) {
+    function toggleSelect(button, currentSet, max) {
       const label = button.textContent;
-      if (set.has(label)) {
-        set.delete(label);
+      if (currentSet.has(label)) {
+        currentSet.delete(label);
         button.classList.remove('selected');
-      } else if (set.size < max) {
-        set.add(label);
+      } else if (currentSet.size < max) {
+        currentSet.add(label);
         button.classList.add('selected');
+      } else {
+        message.textContent = `You can select a maximum of ${max} items for this section.`;
+        setTimeout(() => message.textContent = '', 3000);
       }
     }
+    
+    // Handle "Any" checkbox for lookingForGender
+    const anyCheckbox = document.getElementById('lf_any');
+    const genderCheckboxes = lookingForGenderOptionsDiv.querySelectorAll('input[type="checkbox"]:not(#lf_any)');
 
-    continueBtn.onclick = () => {
+    if(anyCheckbox) {
+        anyCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                genderCheckboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.disabled = true;
+                });
+            } else {
+                genderCheckboxes.forEach(cb => cb.disabled = false);
+            }
+        });
+    }
+
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUserId = user.uid;
+        localWoobieUsername = localStorage.getItem('woobieUsername');
+        localWoobieMode = localStorage.getItem('woobieMode');
+        localWoobieEmoji = localStorage.getItem('woobieEmoji'); // Get emoji too
+
+        if (!localWoobieUsername || !localWoobieMode || !currentUserId) {
+            message.textContent = "Critical session data missing (name, mode, or UID). Please start over from name picking.";
+            setTimeout(() => window.location.href = '/name-picker/index.html', 3000);
+            continueBtn.disabled = true;
+            return;
+        }
+
+        // Update user's stage in their main profile to show they are on this page
+        try {
+            const userMainProfileStageRef = ref(db, `users/${currentUserId}/currentMatch`);
+            await update(userMainProfileStageRef, {
+                stage: 'interests-dealbreakers' // Current stage
+            });
+        } catch (stageUpdateError) {
+            console.error("Error updating user stage to interests-dealbreakers:", stageUpdateError);
+        }
+
+        // Pre-fill from DB if available (e.g., user is returning to this page)
+        try {
+            const profileDetailsSnap = await get(ref(db, `users/${currentUserId}/profileDetails`));
+            if (profileDetailsSnap.exists()) {
+                const prefs = profileDetailsSnap.val();
+                if (prefs.gender) genderIdentitySelect.value = prefs.gender;
+                
+                if (prefs.lookingForGender) {
+                    const lookingForCheckboxes = lookingForGenderOptionsDiv.querySelectorAll('input[type="checkbox"]');
+                    lookingForCheckboxes.forEach(cb => {
+                        if (prefs.lookingForGender.includes(cb.value)) {
+                            cb.checked = true;
+                            if (cb.value === "Any") { // If "Any" is checked, disable others
+                                genderCheckboxes.forEach(otherCb => otherCb.disabled = true);
+                            }
+                        }
+                    });
+                }
+
+                if (prefs.interests) {
+                    selectedInterests = new Set(prefs.interests);
+                    interestContainer.querySelectorAll('.woobie-button').forEach(btn => {
+                        if (selectedInterests.has(btn.textContent)) btn.classList.add('selected');
+                    });
+                }
+                if (prefs.dealbreakers) {
+                    selectedDealbreakers = new Set(prefs.dealbreakers);
+                    dealbreakerContainer.querySelectorAll('.woobie-button').forEach(btn => {
+                        if (selectedDealbreakers.has(btn.textContent)) btn.classList.add('selected');
+                    });
+                }
+            }
+        } catch (fetchError) {
+            console.error("Error pre-filling preferences:", fetchError);
+            message.textContent = "Could not load saved preferences. Please select them again.";
+        }
+
+
+      } else {
+        message.textContent = 'You must be logged in. Redirecting to login...';
+        setTimeout(() => window.location.href = '/auth/login.html', 2000);
+        continueBtn.disabled = true;
+      }
+    });
+
+    continueBtn.onclick = async () => {
+      if (!currentUserId) {
+        message.textContent = 'Authentication error. Please log in again.';
+        return;
+      }
+
       if (selectedInterests.size < 3) {
         message.textContent = 'Please pick at least 3 interests.';
         return;
       }
 
-      localStorage.setItem('woobieInterests', JSON.stringify([...selectedInterests]));
-      localStorage.setItem('woobieDealbreakers', JSON.stringify([...selectedDealbreakers]));
+      const genderIdentity = genderIdentitySelect.value;
+      let lookingForGenderSelected = [];
+      if (anyCheckbox && anyCheckbox.checked) {
+        lookingForGenderSelected.push("Any");
+      } else {
+        lookingForGenderOptionsDiv.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+          lookingForGenderSelected.push(cb.value);
+        });
+      }
 
-      window.location.href = '/bio/index.html';
+      if (!anyCheckbox.checked && lookingForGenderSelected.length === 0) {
+        message.textContent = 'Please select what gender of friend you are looking for, or choose "Any".';
+        return;
+      }
+
+      const interestsArray = [...selectedInterests];
+      const dealbreakersArray = [...selectedDealbreakers];
+
+      try {
+        // 1. Save all these preferences to the user's main profile details
+        const userProfileDetailsRef = ref(db, `users/${currentUserId}/profileDetails`);
+        await update(userProfileDetailsRef, { // Use update to merge, not overwrite other details
+          gender: genderIdentity,
+          lookingForGender: lookingForGenderSelected,
+          interests: interestsArray,
+          dealbreakers: dealbreakersArray
+        });
+        console.log("User profile details saved for UID:", currentUserId);
+
+        // 2. Prepare data for the queue
+        const potentialMatchID = localStorage.getItem('woobieMatchID') || `m-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        // The potentialMatchID should be generated here if not already present from name-picker's currentMatch update.
+        // However, name-picker.js now sets a potentialMatchID in /users/{uid}/currentMatch/matchID
+        // Let's fetch that to ensure consistency.
+        let finalPotentialMatchID = potentialMatchID;
+        const userCurrentMatchSnap = await get(ref(db, `users/${currentUserId}/currentMatch`));
+        if (userCurrentMatchSnap.exists() && userCurrentMatchSnap.val().matchID) {
+            finalPotentialMatchID = userCurrentMatchSnap.val().matchID;
+        } else {
+            // This case means currentMatch or its matchID wasn't set properly in name-picker
+            // We'll use the locally generated one and update currentMatch
+            await update(ref(db, `users/${currentUserId}/currentMatch`), { matchID: finalPotentialMatchID });
+        }
+        localStorage.setItem('woobieMatchID', finalPotentialMatchID); // Ensure localStorage is updated
+
+
+        const queueEntryData = {
+          userUID: currentUserId,
+          woobieName: localWoobieUsername, // From localStorage, set by name-picker
+          gender: genderIdentity,
+          lookingForGender: lookingForGenderSelected,
+          interests: interestsArray,
+          dealbreakers: dealbreakersArray,
+          mode: localWoobieMode, // From localStorage, set by name-picker
+          timestamp: serverTimestamp(),
+          potentialMatchIDForUser: finalPotentialMatchID
+        };
+
+        // 3. Add user to the queue
+        await set(ref(db, `/queue/${currentUserId}`), queueEntryData);
+        console.log(`User ${currentUserId} (${localWoobieUsername}) added to queue with all preferences.`);
+
+        // 4. Update user's main profile stage
+        const userMainProfileStageRef = ref(db, `users/${currentUserId}/currentMatch`);
+        await update(userMainProfileStageRef, {
+          stage: 'waiting_in_queue', // Now they are officially waiting
+          matchID: finalPotentialMatchID // Ensure this is set
+        });
+        console.log(`User ${currentUserId} stage updated to 'waiting_in_queue'.`);
+
+        // 5. Redirect to waiting page
+        window.location.href = '/waiting.html';
+
+      } catch (err) {
+        console.error("Failed to save preferences or enter queue:", err);
+        message.textContent = 'Something went wrong. Please try again.';
+      }
     };
   </script>
 </body>

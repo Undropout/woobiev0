@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tier 1b Questions</title>
+  <title>Tier 1b: Tell us more about you </title>
   <link rel="stylesheet" href="../shared/style.css" />
 </head>
 <body>
   <div class="container">
-    <h1>Tier 1b: One Step Closer</h1>
+    <h1>Tier 1b: Tell us more about you</h1>
+
+    <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
+
     <div id="question-block">
       <p id="question-number"></p>
       <p id="question-text"></p>
@@ -18,150 +21,30 @@
 
     <div id="completion-message" style="display:none;">
       <h2>Waiting for your match...</h2>
-      <p>Once both of you finish, you can send a message before deciding to move forward.</p>
-    </div>
-    <div id="message-block" style="display:none;">
-      <h2>Send a Message (optional)</h2>
-      <textarea id="letter-input" rows="6" placeholder="Max 250 words..."></textarea>
-      <p id="letter-count">0 / 250 words</p>
-      <p id="letter-message" style="color:#ff6666;"></p>
-      <button id="submit-letter" class="woobie-button">Send ➡️</button>
-      <button id="skip-letter" class="woobie-button">Skip</button>
+      <p>Once both of you finish, you'll review each other's answers and send a message.</p>
     </div>
 
-    <!-- Our Story button -->
-    <div id="story-button-container" style="margin-top: 2rem; text-align:center;">
-      <button id="our-story-button" class="woobie-button">📖 Our Story So Far</button>
-    </div>
-
-    <!-- Our Story modal -->
-    <div id="our-story-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; overflow:auto; z-index:9999; padding:2rem;">
-      <button id="close-story" class="woobie-button" style="position:absolute; top:1rem; right:1rem;">❌ Close</button>
-      <h2 style="color:#33ff33">📚 Our Story So Far</h2>
-      <div id="story-content" style="color:white;"></div>
-    </div>
-  </div>
+    <div id="tier1b-review"></div> </div>
 
   <script type="module">
-    import { db } from '../shared/firebase-config.js';
-    import { ref, set, onValue, get } from 'firebase/database';
+    import { auth, db } from '../shared/firebase-config.js';
+    import { ref, update } from 'firebase/database';
+    import { onAuthStateChanged } from 'firebase/auth';
 
-    const username = localStorage.getItem('woobieUsername');
-    const matchID = localStorage.getItem('woobieMatchID');
-    const myBio = localStorage.getItem('woobieBio');
+    // This event listener "tier1bComplete" needs to be dispatched from tier1b.js
+    // Consider the timing of this stage update more carefully within tier1b.js
+    window.addEventListener("tier1bComplete", () => {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) return;
 
-    const answersRef = ref(db, `matches/${matchID}/tier1b/${username}`);
-    const allAnswersRef = ref(db, `matches/${matchID}/tier1b`);
-    const letterRef = ref(db, `matches/${matchID}/tier1bLetters/${username}`);
-    const bioRef = ref(db, `matches/${matchID}/bios/${username}`);
-
-    if (myBio) set(bioRef, myBio);
-
-    const questions = [
-      "What's something you're working on improving?",
-      "How do you recharge after a stressful day?",
-      "What's a non-negotiable value in your life?",
-      "What do you want more of in your future?",
-      "What makes you feel heard?",
-      "What's a memory you'd share to explain who you are?"
-    ];
-
-    let answers = [];
-    let currentIndex = 0;
-
-    const questionNumber = document.getElementById('question-number');
-    const questionText = document.getElementById('question-text');
-    const answerInput = document.getElementById('answer');
-    const submitBtn = document.getElementById('submit-btn');
-    const questionBlock = document.getElementById('question-block');
-    const completionMessage = document.getElementById('completion-message');
-    const messageBlock = document.getElementById('message-block');
-    const letterInput = document.getElementById('letter-input');
-    const letterCount = document.getElementById('letter-count');
-    const letterMsg = document.getElementById('letter-message');
-
-    function showQuestion() {
-      if (currentIndex >= questions.length) {
-        questionBlock.style.display = 'none';
-        completionMessage.style.display = 'block';
-        set(answersRef, answers);
-        return;
-      }
-      questionNumber.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
-      questionText.textContent = questions[currentIndex];
-      answerInput.value = answers[currentIndex]?.value || '';
-    }
-
-    submitBtn.onclick = () => {
-      const value = answerInput.value.trim();
-      if (!value) return;
-      answers[currentIndex] = { format: 'text', value };
-      currentIndex++;
-      showQuestion();
-    };
-
-    onValue(allAnswersRef, snap => {
-      const all = snap.val();
-      if (all && Object.keys(all).length >= 2) {
-        completionMessage.style.display = 'none';
-        messageBlock.style.display = 'block';
-      }
-    });
-
-    letterInput.oninput = () => {
-      const words = letterInput.value.trim().split(/\s+/).filter(Boolean);
-      letterCount.textContent = `${words.length} / 250 words`;
-    };
-
-    document.getElementById('submit-letter').onclick = () => {
-      const text = letterInput.value.trim();
-      const words = text.split(/\s+/).filter(Boolean);
-      const repeated = /(.)\1{20,}/.test(text);
-      if (words.length > 250 || repeated) {
-        letterMsg.textContent = 'Please keep your message under 250 words and avoid repeated characters.';
-        return;
-      }
-      set(letterRef, text);
-      window.location.href = '/tier2/index.html';
-    };
-
-    document.getElementById('skip-letter').onclick = () => {
-      set(letterRef, '');
-      window.location.href = '/tier2/index.html';
-    };
-
-    showQuestion();
-
-    // Our Story Modal Logic
-    document.getElementById('our-story-button').onclick = async () => {
-      const story = document.getElementById('story-content');
-      story.innerHTML = '<p>Loading...</p>';
-      document.getElementById('our-story-modal').style.display = 'block';
-
-      const snapshot = await get(ref(db, `matches/${matchID}/tier1b`));
-      const data = snapshot.val() || {};
-      const partner = Object.keys(data).find(k => k !== username);
-      if (!partner) {
-        story.innerHTML = '<p>No previous story found.</p>';
-        return;
-      }
-      const mine = data[username];
-      const theirs = data[partner];
-
-      const tier1Qs = questions;
-      story.innerHTML = '<h3>📘 Tier 1b</h3>';
-      tier1Qs.forEach((q, i) => {
-        story.innerHTML += `
-          <details><summary><strong>${q}</strong></summary>
-          <p><strong>You:</strong> ${mine[i]?.value || ''}</p>
-          <p><strong>Your Match:</strong> ${theirs[i]?.value || ''}</p>
-          </details>`;
+        console.log("tier1bComplete event triggered, updating stage for user:", user.uid);
+        const userMatchProgressRef = ref(db, `users/${user.uid}/currentMatch`);
+        await update(userMatchProgressRef, { stage: 'tier1b-complete' });
       });
-    };
-
-    document.getElementById('close-story').onclick = () => {
-      document.getElementById('our-story-modal').style.display = 'none';
-    };
+    });
   </script>
+
+  <script type="module" src="./tier1b.js"></script>
+  <script type="module" src="../shared/logout.js"></script>
 </body>
 </html>

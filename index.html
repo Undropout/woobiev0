@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Welcome to Woobie</title>
   <link rel="stylesheet" href="./shared/style.css" />
 </head>
@@ -11,13 +11,16 @@
     <h1>Welcome to Woobie 💬</h1>
     <p>Your journey to meaningful connection starts here.</p>
     <button id="start-button" class="woobie-button">Start Now ➡️</button>
+
+    <!-- Log out button will be visible only when logged in -->
+    <button id="logout-button" class="woobie-button" style="margin-top: 1rem;">🚪 Log out</button>
   </div>
 
+  <script type="module" src="./router.js"></script>
+  <script type="module" src="./shared/logout.js"></script>
   <script>
     document.getElementById('start-button').onclick = () => {
-      // Clear local storage to reset any prior session
-      localStorage.clear();
-      window.location.href = './name-picker/index.html';
+      window.location.href = './auth/login.html';
     };
   </script>
 </body>

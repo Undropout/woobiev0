@@ -170,4 +170,102 @@
     display: none;
     visibility: hidden;
   }
+  .woobie-cosmic {
+    position: relative;
+    color: #ff66ff;
+    text-shadow: 0 0 6px #ff99ff;
+    animation: cosmicGlow 2s ease-in-out infinite alternate;
+  }
+  
+  .woobie-cosmic::before,
+  .woobie-cosmic::after {
+    content: '✨';
+    position: absolute;
+    opacity: 0;
+    font-size: 0.7em;
+    animation: sparkleDrift 3s infinite ease-in-out;
+    pointer-events: none;
+  }
+  
+  .woobie-cosmic::before {
+    top: -0.5em;
+    left: -0.7em;
+    animation-delay: 0s;
+  }
+  
+  .woobie-cosmic::after {
+    bottom: -0.4em;
+    right: -0.6em;
+    animation-delay: 1.3s;
+  }
+  
+  /* Optionally, insert more sparkle trails dynamically */
+  .woobie-cosmic .trail-sparkle {
+    position: absolute;
+    font-size: 0.6em;
+    opacity: 0;
+    pointer-events: none;
+    animation: sparkleDrift 3s infinite ease-in-out;
+  }
+  
+  @keyframes cosmicGlow {
+    from {
+      text-shadow: 0 0 2px #ff66ff, 0 0 5px #ff99ff;
+    }
+    to {
+      text-shadow: 0 0 8px #cc00ff, 0 0 12px #ffccff;
+    }
+  }
+  .trail-sparkle {
+    position: absolute;
+    font-size: 0.8em;
+    pointer-events: none;
+    animation: sparkleTrail 2s linear infinite;
+    opacity: 0.6;
+  }
+  
+  @keyframes sparkleTrail {
+    0% { transform: translateY(-1px) scale(1); opacity: 0.4; }
+    50% { transform: translateY(1px) scale(1.3); opacity: 1; }
+    100% { transform: translateY(-1px) scale(1); opacity: 0.4; }
+  }
+  
+  @keyframes sparkleDrift {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 0;
+    }
+    50% {
+      transform: translateY(-0.5em) scale(1.3);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-1em) scale(0.9);
+      opacity: 0;
+    }
+  }
+  
+  
+  .woobie-prismatic {
+    background: linear-gradient(270deg, red, orange, yellow, green, cyan, blue, violet);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: prismaticFlow 3s linear infinite;
+  }
+  
+  @keyframes prismaticFlow {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: -200% 50%; }
+  }
+  
+  
+  .woobie-neon {
+    color: #00ff00;
+    text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff;
+  }
+  
+  .woobie-normal {
+    color: #33ff33;
+  }
   

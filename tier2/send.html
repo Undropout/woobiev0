@@ -2,123 +2,164 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Tier 2 Reward</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tier 2: Let's communicate a little </title>
+  <p>Now you get to send a direct message <i>and/or</i> an image <i>and/or</i> a recorded message </p>
   <link rel="stylesheet" href="../shared/style.css" />
+  <style>
+    .image-adjust-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .has-image .image-adjust-layout {
+      flex-direction: row;
+      align-items: flex-start;
+      flex-wrap: nowrap;
+      gap: 2rem;
+    }
+
+    .image-preview-block {
+      flex: 1 1 40%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .image-controls-block {
+      flex: 1 1 50%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .has-image #color-buttons {
+      flex-direction: row !important;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    @media (max-width: 768px) {
+      .image-adjust-layout {
+        flex-direction: column !important;
+      }
+
+      .has-image .image-adjust-layout {
+        flex-direction: column !important;
+      }
+
+      .has-image #color-buttons {
+        flex-direction: row !important;
+        justify-content: center;
+      }
+
+      .image-controls-block label {
+        display: block;
+        text-align: center;
+      }
+
+      .image-controls-block input[type="range"] {
+        appearance: none;
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: radial-gradient(circle at center, #33ff33 2px, #111 3px);
+        border: 2px solid #33ff33;
+        transform: rotate(-90deg);
+        margin: 0 auto;
+        position: relative;
+      }
+
+      .image-controls-block input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        background: #33ff33;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        cursor: pointer;
+        margin-top: -4px;
+      }
+
+      .image-controls-block {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>🎁 Tier 2 Reward</h1>
-    <p>Send a message, an image, or a voice note to your match!</p>
+    <h1>🎁 Share Your Tier 2 Reward</h1>
+    <p>You’ve completed Tier 2! Now you can send your match a small reward — a note, a sketch, or a voice message.</p>
 
-    <label for="reward-text">📨 Text Message (optional)</label>
-    <textarea id="reward-text" rows="4" placeholder="Write something heartfelt..."></textarea>
+    <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
 
-    <hr />
+    <div id="reward-area">
+      <label for="reward-text">Text Message (optional)</label>
+      <textarea id="reward-text" rows="4" placeholder="Write something nice..."></textarea>
 
-    <label for="image-upload">🖼️ Upload Image</label>
-    <input type="file" id="image-upload" accept="image/*" />
+      <h3>🎨 Image Reward</h3>
+      <input type="file" id="image-upload" accept="image/*">
 
-    <div id="image-editor" style="display:none; margin-top:1rem;">
-      <canvas id="preview-canvas" width="128" height="128" style="border:1px solid #33ff33;"></canvas>
+      <div class="image-adjust-layout" id="image-adjust-wrap">
+        <div class="image-preview-block">
+          <canvas id="chat-preview-canvas" width="128" height="128" style="border:1px solid #33ff33;"></canvas>
+          <div id="color-buttons" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
+            <button class="color-btn" data-color="#33ff33" style="background:#33ff33;"></button>
+            <button class="color-btn" data-color="#00ffff" style="background:#00ffff;"></button>
+            <button class="color-btn" data-color="#ff9900" style="background:#ff9900;"></button>
+            <button class="color-btn" data-color="#ff66ff" style="background:#ff66ff;"></button>
+          </div>
+        </div>
 
-      <div style="margin-top:1rem;">
-        <label for="threshold">Threshold</label>
-        <input type="range" id="threshold" min="0" max="255" value="128" />
-        <label for="contrast">Contrast</label>
-        <input type="range" id="contrast" min="-100" max="100" value="0" />
+        <div class="image-controls-block">
+          <label for="chat-contrast" style="color:#33ff33">Contrast</label>
+          <input type="range" id="chat-contrast" min="-100" max="100" value="0" />
+
+          <label for="output-black" style="color:#33ff33">Black Level</label>
+          <input type="range" id="output-black" min="0" max="254" value="0" />
+
+          <label for="output-white" style="color:#33ff33">White Level</label>
+          <input type="range" id="output-white" min="1" max="255" value="255" />
+
+          <label for="chat-image-alt" style="color:#33ff33; display:block; margin-top:1rem;">Alt text (140 characters):</label>
+          <input type="text" id="chat-image-alt" maxlength="140" style="width:100%; margin-bottom:1rem;" />
+
+          <div style="display:flex; justify-content:space-between; margin-top:1rem;">
+            <button id="chat-cancel-upload" class="close-adjust" style="background:#222; color:#ff3333; padding:0.5rem 1rem; border:1px solid #ff3333;">Cancel</button>
+            <button id="chat-send-upload" style="background:#000; color:#33ff33; padding:0.5rem 1rem; border:1px solid #33ff33;">Send Image ➡️</button>
+          </div>
+        </div>
       </div>
 
-      <div style="margin-top:1rem;">
-        <button class="color-btn" data-color="#33ff33" style="background:#33ff33;"></button>
-        <button class="color-btn" data-color="#00ffff" style="background:#00ffff;"></button>
-        <button class="color-btn" data-color="#ff9900" style="background:#ff9900;"></button>
-        <button class="color-btn" data-color="#ff66ff" style="background:#ff66ff;"></button>
+      <h3>🎤 Audio Message</h3>
+      <div>
+        <button id="start-recording">Start Recording</button>
+        <button id="stop-recording" disabled>Stop</button>
+        <button id="play-audio" disabled>Play</button>
+        <button id="reset-audio" disabled>Reset</button>
+        <span id="recording-indicator" style="display:none; color:#ff6666;">● Recording</span>
       </div>
+      <audio id="audio-preview" controls style="display:none;"></audio>
 
-      <label for="image-alt">Alt Text</label>
-      <input type="text" id="image-alt" maxlength="140" placeholder="Describe the image..." />
-    </div>
-
-    <hr />
-
-    <h3>🎤 Record Audio</h3>
-    <div>
-      <button id="start-recording">Record</button>
-      <button id="stop-recording" disabled>Stop</button>
-      <button id="play-audio" disabled>Play</button>
-      <button id="reset-audio" disabled>Re-record</button>
-      <label><input type="checkbox" id="lofi-toggle" /> Lo-fi filter</label>
-    </div>
-    <audio id="audio-preview" style="display:none; margin-top:0.5rem;" controls></audio>
-
-    <hr />
-
-    <button id="submit-reward" class="woobie-button">✅ Send Reward</button>
-    <p id="status-msg" style="margin-top:1rem; color:#33ff33;"></p>
-
-    <div style="margin-top: 2rem; text-align:center;">
-      <button id="our-story-button" class="woobie-button">📖 Our Story So Far</button>
-    </div>
-
-    <div id="our-story-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; overflow:auto; z-index:9999; padding:2rem;">
-      <button id="close-story" class="woobie-button" style="position:absolute; top:1rem; right:1rem;">❌ Close</button>
-      <h2 style="color:#33ff33">📚 Our Story So Far</h2>
-      <div id="story-content" style="color:white;"></div>
+      <p id="status-msg" style="margin-top:1rem;"></p>
+      <button id="submit-reward" class="woobie-button" style="margin-top:1rem;">✅ Finalize & Send All</button>
     </div>
   </div>
 
+  <script type="module" src="../shared/logout.js"></script>
   <script type="module" src="./send.js"></script>
-  <script type="module">
-    import { db } from '../shared/firebase-config.js';
-    import { ref, get } from 'firebase/database';
-
-    const username = localStorage.getItem('woobieUsername');
-    const matchID = localStorage.getItem('woobieMatchID');
-
-    document.getElementById('our-story-button').onclick = async () => {
-      const story = document.getElementById('story-content');
-      story.innerHTML = '<p>Loading...</p>';
-      document.getElementById('our-story-modal').style.display = 'block';
-
-      const snapshot = await get(ref(db, `matches/${matchID}/tier2`));
-      const data = snapshot.val() || {};
-      const partner = Object.keys(data).find(k => k !== username);
-      if (!partner) {
-        story.innerHTML = '<p>No previous story found.</p>';
-        return;
-      }
-      const mine = data[username].answers;
-      const theirs = data[partner].answers;
-
-      const questions = [
-        'What’s a moment in your life that changed the way you see the world?',
-        'How do you show someone you care about them?',
-        'What’s something people often misunderstand about you?',
-        'When do you feel most like yourself?',
-        'What’s one thing you wish more people asked you about?',
-        'What makes you feel seen or understood?',
-        'What kind of love or friendship feels most healing to you?',
-        'How do you respond to conflict in close relationships?',
-        'When have you felt the most connected to another person?',
-        'What do you want someone to understand about you deeply?',
-        'What’s a truth about you that takes time to reveal?',
-        'How do you hold space for someone else’s emotions?'
-      ];
-
-      story.innerHTML = '<h3>📘 Tier 2</h3>';
-      questions.forEach((q, i) => {
-        story.innerHTML += `
-          <details><summary><strong>${q}</strong></summary>
-          <p><strong>You:</strong> ${mine[i] || ''}</p>
-          <p><strong>Your Match:</strong> ${theirs[i] || ''}</p>
-          </details>`;
-      });
-    };
-
-    document.getElementById('close-story').onclick = () => {
-      document.getElementById('our-story-modal').style.display = 'none';
-    };
+  <script type="module" src="./image-editor.js"></script>
+  <script type="module" src="./retro-upload-toggle.js"></script>
+  <script type="module" src="./tier2-audio.js"></script>
+  <script>
+    document.getElementById('image-upload').addEventListener('change', () => {
+      document.body.classList.add('has-image');
+    });
   </script>
 </body>
 </html>

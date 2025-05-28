@@ -14,7 +14,13 @@
   0% { background-position: 0% 50%; }
   100% { background-position: 100% 50%; }
 }
-
+.color-btn {
+  width: 48px;     /* 32px × 1.5 = 48px */
+  height: 48px;    /* same as width for square shape */
+  border: 2px solid #fff;
+  cursor: pointer;
+  display: inline-block;
+}
 .woobie-neon strong {
   color: #39ff14;
   text-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14, 0 0 15px #00ffcc;
@@ -142,4 +148,22 @@ canvas {
 
 [hidden] {
   display: none !important;
+}
+.image-adjust-layout {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.image-preview-block {
+  flex: 1 1 40%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-controls-block {
+  flex: 1 1 50%;
 }

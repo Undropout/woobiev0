@@ -1,7 +1,8 @@
-// shared/firebase-config.js
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
+import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
+
 
 // ✅ Replace with your own Firebase config
 const firebaseConfig = {
@@ -14,7 +15,10 @@ const firebaseConfig = {
   appId: "1:642703845433:web:56be57a1da63e1ecbd85e8"
 };
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-export const db = getDatabase(app);
-export const storage = getStorage(app);
+const db = getDatabase(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
+
+export { db, auth, storage };

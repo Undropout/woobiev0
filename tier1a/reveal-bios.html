@@ -14,50 +14,161 @@
     <div id="bios">
       <p>Loading bios...</p>
     </div>
-    <button onclick="window.location.href='/shared/history.html'">📖 Our Story So Far</button>
 
     <button class="woobie-button" id="continue-btn" style="display:none;">➡️ Continue to Tier 1b</button>
   </div>
 
   <script type="module">
-    import { db } from '../shared/firebase-config.js';
-    import { ref, get } from 'firebase/database';
+    import { db, auth } from '../shared/firebase-config.js';
+    import { ref, get, update, onValue } from 'firebase/database'; // Added update and onValue
+    import { onAuthStateChanged } from 'firebase/auth';
 
-    const username = localStorage.getItem('woobieUsername');
-    const matchID = localStorage.getItem('woobieMatchID');
     const biosDiv = document.getElementById('bios');
     const continueBtn = document.getElementById('continue-btn');
+    let matchID; // Will be set in onAuthStateChanged
 
-    if (!username || !matchID) {
-      alert("Missing username or match ID");
+    async function renderBios(currentUserId, localWoobieUsername) {
+      try {
+        const allBiosRef = ref(db, `matches/${matchID}/bios`);
+        const biosSnap = await get(allBiosRef);
+        const allBiosData = biosSnap.val();
+
+        if (!allBiosData || Object.keys(allBiosData).length < 2) {
+          biosDiv.innerHTML = '<p>Waiting for your match to submit their bio...</p>';
+          // Set up a listener if data isn't complete yet
+          const unsubscribe = onValue(allBiosRef, (snapshot) => {
+              const updatedBios = snapshot.val();
+              if (updatedBios && Object.keys(updatedBios).length >= 2) {
+                  unsubscribe(); // Stop listening once data is sufficient
+                  renderBios(currentUserId, localWoobieUsername); // Re-call renderBios
+              }
+          }, (error) => {
+              console.error("Error listening to bios:", error);
+              biosDiv.innerHTML = '<p style="color:#ff6666;">Error waiting for match data. Please try refreshing.</p>';
+          });
+          return;
+        }
+
+        const partnerUID = Object.keys(allBiosData).find(uidKey => uidKey !== currentUserId);
+
+        if (!partnerUID || !allBiosData[currentUserId] || !allBiosData[partnerUID]) {
+            biosDiv.innerHTML = '<p>Error: Could not retrieve complete bio information for both users. Waiting for updates...</p>';
+             // Set up a listener if data isn't complete yet (again, for robustness)
+            const unsubscribeOnError = onValue(allBiosRef, (snapshot) => {
+                const updatedBios = snapshot.val();
+                if (updatedBios && Object.keys(updatedBios).length >= 2 && updatedBios[currentUserId] && updatedBios[Object.keys(updatedBios).find(uidKey => uidKey !== currentUserId)]) {
+                    unsubscribeOnError();
+                    renderBios(currentUserId, localWoobieUsername);
+                }
+            });
+            return;
+        }
+
+        const [myProfileSnap, theirProfileSnap, usersNodeSnap] = await Promise.all([
+          get(ref(db, `matches/${matchID}/profiles/${currentUserId}`)),
+          get(ref(db, `matches/${matchID}/profiles/${partnerUID}`)),
+          get(ref(db, `matches/${matchID}/users`)) // To get display names
+        ]);
+
+        const myProfileData = myProfileSnap.val() || {};
+        const theirProfileData = theirProfileSnap.val() || {};
+        const usersNodeData = usersNodeSnap.val() || {};
+        
+        const myDisplayName = usersNodeData[currentUserId] || localWoobieUsername || "You";
+        const partnerDisplayName = usersNodeData[partnerUID] || "Your Match";
+
+        const formatList = arr =>
+          Array.isArray(arr) && arr.length
+            ? `${arr.map(item => `<li>${item}</li>`).join('')}`
+            : '<li><i>None listed</i></li>'; // Return a list item
+
+        biosDiv.innerHTML = `
+          <div style="border:1px solid #33ff33; padding:1rem; margin-bottom:1rem;">
+            <h2>${partnerDisplayName}'s Bio:</h2>
+            <p>${allBiosData[partnerUID]}</p>
+            <h4>🎯 Interests:</h4>
+            <ul>${formatList(theirProfileData.interests)}</ul>
+            <h4>❌ Dealbreakers:</h4>
+            <ul>${formatList(theirProfileData.dealbreakers)}</ul>
+          </div>
+          <div style="border:1px solid #999999; padding:1rem;">
+            <h2>${myDisplayName}'s Bio:</h2>
+            <p>${allBiosData[currentUserId]}</p>
+            <h4>🎯 Interests:</h4>
+            <ul>${formatList(myProfileData.interests)}</ul>
+            <h4>❌ Dealbreakers:</h4>
+            <ul>${formatList(myProfileData.dealbreakers)}</ul>
+          </div>
+        `;
+
+        continueBtn.style.display = 'block';
+      } catch (err) {
+        console.error("Failed to load bios or profiles:", err);
+        biosDiv.innerHTML = '<p style="color:#ff6666;">Failed to load bio information. Please try again later.</p>';
+      }
     }
 
-    const biosRef = ref(db, `matches/${matchID}/bios`);
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        biosDiv.innerHTML = '<p>Not logged in. Please reload or sign in again. Redirecting...</p>';
+        continueBtn.style.display = 'none';
+        setTimeout(() => window.location.href = '/auth/login.html', 2000);
+        return;
+      }
+      
+      const currentUserIdFromAuth = user.uid;
+      let localWoobieUsernameFromLS = localStorage.getItem('woobieUsername');
+      matchID = localStorage.getItem('woobieMatchID'); // Set module-scoped matchID
 
-    get(biosRef).then(snap => {
-      const all = snap.val();
-      if (!all || Object.keys(all).length < 2) {
-        biosDiv.innerHTML = '<p>Still waiting on your match to submit their bio...</p>';
+      if (!matchID) {
+        biosDiv.innerHTML = '<p style="color:#ff6666;">Missing Match ID. Please restart the process.</p>';
+        continueBtn.style.display = 'none';
+        setTimeout(() => window.location.href = '/name-picker/index.html', 2500);
         return;
       }
 
-      const partner = Object.keys(all).find(k => k !== username);
+      if (!localWoobieUsernameFromLS) {
+         try {
+           const userCurrentMatchSnap = await get(ref(db, `users/${currentUserIdFromAuth}/currentMatch`));
+           const userCurrentMatchData = userCurrentMatchSnap.val();
+           if (userCurrentMatchData && userCurrentMatchData.username) {
+              localWoobieUsernameFromLS = userCurrentMatchData.username;
+              localStorage.setItem('woobieUsername', localWoobieUsernameFromLS); // Repopulate localStorage
+           } else {
+              biosDiv.innerHTML = '<p style="color:#ff6666;">Missing Woobie name. Please restart by picking a name.</p>';
+              setTimeout(() => window.location.href = '/name-picker/index.html', 2500);
+              return; // Stop further execution
+           }
+         } catch (err) {
+            console.error("Error fetching Woobie name from profile:", err);
+            biosDiv.innerHTML = '<p style="color:#ff6666;">Could not retrieve session details. Please restart.</p>';
+            setTimeout(() => window.location.href = '/name-picker/index.html', 2500);
+            return;
+         }
+      }
+      
+      await renderBios(currentUserIdFromAuth, localWoobieUsernameFromLS);
 
-      biosDiv.innerHTML = `
-        <div style="border:1px solid #33ff33; padding:1rem; margin-bottom:1rem;">
-          <h2>Your Match's Bio:</h2>
-          <p>${all[partner]}</p>
-        </div>
-        <div style="border:1px solid #999999; padding:1rem;">
-          <h2>Your Bio:</h2>
-          <p>${all[username]}</p>
-        </div>
-      `;
-
-      continueBtn.style.display = 'block';
+      const userMatchProgressRef = ref(db, `users/${currentUserIdFromAuth}/currentMatch`);
+      await update(userMatchProgressRef, { stage: 'tier1a-bios-revealed' });
     });
 
-    continueBtn.onclick = () => {
+    continueBtn.onclick = async () => {
+      // Optionally, update stage to 'tier1b' here before redirecting,
+      // or let tier1b/index.html handle setting its own stage on load.
+      // For consistency, it's often good for the loading page to set its active stage.
+      // However, if you want to ensure it's set before navigation:
+      /*
+      const currentUser = auth.currentUser;
+      if (currentUser && matchID) {
+        const userMatchProgressRef = ref(db, `users/${currentUser.uid}/currentMatch`);
+        try {
+          await update(userMatchProgressRef, { stage: 'tier1b' });
+        } catch (error) {
+          console.error("Error updating stage before redirecting to tier1b:", error);
+        }
+      }
+      */
       window.location.href = '/tier1b/index.html';
     };
   </script>

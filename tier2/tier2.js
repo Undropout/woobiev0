@@ -1,7 +1,6 @@
 // tier2.js
-import { db, storage } from '../shared/firebase-config.js';
-import { ref, set, get } from 'firebase/database';
-import { ref as sRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from '../shared/firebase-config.js';
+import { ref, set, get, onValue } from 'firebase/database';
 
 let username = localStorage.getItem('woobieUsername');
 let matchID = localStorage.getItem('woobieMatchID');
@@ -38,15 +37,17 @@ async function submitAnswers() {
   checkIfBothFinished();
 }
 
-async function checkIfBothFinished() {
-  const snapshot = await get(ref(db, `matches/${matchID}/tier2`));
-  const all = snapshot.val() || {};
-  if (Object.keys(all).length >= 2) {
-    window.location.href = '/tier2/send.html';
-  } else {
-    document.getElementById('question-block').style.display = 'none';
-    document.getElementById('completion-message').style.display = 'block';
-  }
+function checkIfBothFinished() {
+  const allAnswersRef = ref(db, `matches/${matchID}/tier2`);
+  onValue(allAnswersRef, snapshot => {
+    const all = snapshot.val() || {};
+    if (Object.keys(all).length >= 2) {
+      window.location.href = '/tier2/send.html';
+    } else {
+      document.getElementById('question-block').style.display = 'none';
+      document.getElementById('completion-message').style.display = 'block';
+    }
+  });
 }
 
 const stored = JSON.parse(localStorage.getItem('tier2Answers') || '[]');
@@ -74,3 +75,12 @@ if (idx >= questions.length) {
     }
   };
 }
+
+// Watch for both rewards being submitted and redirect to reveal.html if so
+const rewardRef = ref(db, `matches/${matchID}/tier2Rewards`);
+onValue(rewardRef, snap => {
+  const rewards = snap.val();
+  if (rewards && Object.keys(rewards).length >= 2) {
+    window.location.href = '/tier2/reveal.html';
+  }
+});

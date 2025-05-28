@@ -1,4 +1,4 @@
-// tier1b.js
+// image-editor.js
 import { db } from '../shared/firebase-config.js';
 import { ref, set, onValue, get } from 'firebase/database';
 
@@ -55,61 +55,71 @@ const letterMsg = document.getElementById('letter-message');
 
 function showQuestion() {
   if (currentIndex >= questions.length) {
-    questionBlock.style.display = 'none';
-    completionMessage.style.display = 'block';
+    if (questionBlock) questionBlock.style.display = 'none';
+    if (completionMessage) completionMessage.style.display = 'block';
     set(answersRef, answers);
     checkIfBothFinished();
     return;
   }
 
-  questionNumber.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
-  questionText.textContent = questions[currentIndex];
-  answerInput.value = answers[currentIndex]?.value || '';
+  if (questionNumber) questionNumber.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
+  if (questionText) questionText.textContent = questions[currentIndex];
+  if (answerInput) answerInput.value = answers[currentIndex]?.value || '';
 }
 
-submitBtn.onclick = () => {
-  const val = answerInput.value.trim();
-  if (!val) return;
-  answers[currentIndex] = { format: 'text', value: val };
-  currentIndex++;
-  showQuestion();
-};
+if (submitBtn) {
+  submitBtn.onclick = () => {
+    const val = answerInput?.value.trim();
+    if (!val) return;
+    answers[currentIndex] = { format: 'text', value: val };
+    currentIndex++;
+    showQuestion();
+  };
+}
 
 if (myBio) set(bioRef, myBio);
 
 function checkIfBothFinished() {
   get(allAnswersRef).then(snap => {
     const all = snap.val();
-    if (all && Object.keys(all).length >= 2) {
+    if (all && Object.keys(all).length >= 2 && completionMessage && messageBlock) {
       completionMessage.style.display = 'none';
       messageBlock.style.display = 'block';
     }
   });
 }
 
-letterInput.oninput = () => {
-  const words = letterInput.value.trim().split(/\s+/).filter(Boolean);
-  letterCount.textContent = `${words.length} / 250 words`;
-};
+if (letterInput) {
+  letterInput.oninput = () => {
+    const words = letterInput.value.trim().split(/\s+/).filter(Boolean);
+    if (letterCount) letterCount.textContent = `${words.length} / 250 words`;
+  };
+}
 
-document.getElementById('submit-letter').onclick = () => {
-  const text = letterInput.value.trim();
-  const words = text.split(/\s+/).filter(Boolean);
-  const repeated = /(.)\1{20,}/.test(text);
-  if (words.length > 250 || repeated) {
-    letterMsg.textContent = 'Please keep your message under 250 words with no repeated spam characters.';
-    return;
-  }
-  set(letterRef, text);
-  set(voteRef, true);
-  waitForMutualVote();
-};
+const submitLetterBtn = document.getElementById('submit-letter');
+if (submitLetterBtn && letterInput && letterMsg) {
+  submitLetterBtn.onclick = () => {
+    const text = letterInput.value.trim();
+    const words = text.split(/\s+/).filter(Boolean);
+    const repeated = /(.)\1{20,}/.test(text);
+    if (words.length > 250 || repeated) {
+      letterMsg.textContent = 'Please keep your message under 250 words with no repeated spam characters.';
+      return;
+    }
+    set(letterRef, text);
+    set(voteRef, true);
+    waitForMutualVote();
+  };
+}
 
-document.getElementById('skip-letter').onclick = () => {
-  set(letterRef, '');
-  set(voteRef, true);
-  waitForMutualVote();
-};
+const skipLetterBtn = document.getElementById('skip-letter');
+if (skipLetterBtn) {
+  skipLetterBtn.onclick = () => {
+    set(letterRef, '');
+    set(voteRef, true);
+    waitForMutualVote();
+  };
+}
 
 function waitForMutualVote() {
   onValue(allVotesRef, snap => {
@@ -117,7 +127,7 @@ function waitForMutualVote() {
     if (!votes || Object.keys(votes).length < 2) return;
     if (Object.values(votes).every(v => v === true)) {
       window.location.href = '/tier2/index.html';
-    } else {
+    } else if (messageBlock) {
       messageBlock.innerHTML = '<h2>Unfortunately, your match wasn\'t ready to continue. 😔</h2>';
     }
   });

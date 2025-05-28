@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up – Woobie</title>
+  <link rel="stylesheet" href="../shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Create Your Woobie Account</h1>
+
+    <!-- 🚪 Log out button -->
+    <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
+
+    <form id="signup-form">
+      <label for="email">Email</label>
+      <input type="email" id="email" required />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" required />
+
+      <button type="submit" class="woobie-button">Sign Up</button>
+    </form>
+
+    <p id="error-message" style="color:#ff4444;"></p>
+    <p><a href="/auth/login.html">Already have an account? Log in here</a></p>
+  </div>
+
+  <script type="module">
+    import { auth, db } from '../shared/firebase-config.js';
+    import { createUserWithEmailAndPassword } from 'firebase/auth';
+    import { ref, set } from 'firebase/database';
+    import '../shared/logout.js'; // Assuming this handles the logout button if present
+
+    const form = document.getElementById('signup-form');
+    const errorMessage = document.getElementById('error-message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = form.email.value.trim();
+      const password = form.password.value.trim();
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        const uid = user.uid;
+
+        // Initialize user record in /users/{uid}
+        const profileRef = ref(db, `users/${uid}`);
+        await set(profileRef, {
+          email: user.email,
+          username: "", // Initialize Woobie name as an empty string to satisfy .validate rule
+          stage: 'name-picker', // Initial overall stage for the user
+          createdAt: Date.now()
+          // The 'currentMatch' object (with matchID, specific Woobie name for match, and match stage)
+          // will be created/updated by name-picker.js and subsequent scripts.
+        });
+
+        // Save email and UID to localStorage for the current session
+        localStorage.setItem('woobieEmail', user.email);
+        localStorage.setItem('woobieUID', uid);
+
+        // Redirect to session resume handler, which will then likely send to name-picker
+        window.location.href = '/resume.html';
+      } catch (err) {
+        errorMessage.textContent = err.message;
+        console.error("Signup Error at signup.html:",err); // More specific console error
+      }
+    });
+  </script>
+</body>
+</html>

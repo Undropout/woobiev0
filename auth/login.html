@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login – Woobie</title>
+  <link rel="stylesheet" href="../shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Login to Woobie</h1>
+
+    <!-- 🚪 Log out -->
+    <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
+
+    <form id="login-form">
+      <label for="email">Email:</label>
+      <input type="email" id="email" required />
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" required />
+
+      <button type="submit" class="woobie-button">Login ➡️</button>
+    </form>
+
+    <p>Don’t have an account? <a href="/auth/signup.html">Sign up here</a></p>
+  </div>
+
+  <script type="module">
+    import { auth } from '../shared/firebase-config.js';
+    import { signInWithEmailAndPassword } from 'firebase/auth';
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        localStorage.setItem('woobieEmail', user.email);
+        localStorage.setItem('woobieUID', user.uid);
+
+        // Send to session resume handler
+        window.location.href = '/resume.html';
+      } catch (err) {
+        alert(`Login failed: ${err.message}`);
+        console.error(err);
+      }
+    });
+  </script>
+  <script type="module" src="../shared/logout.js"></script>
+</body>
+</html>
