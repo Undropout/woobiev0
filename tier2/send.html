@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tier 2: Let's communicate a little </title>
-  <p>Now you get to send a direct message <i>and/or</i> an image <i>and/or</i> a recorded message </p>
+  <p>Now you get to send your partner a direct message <i>and/or</i> an image <i>and/or</i> a recorded message </p>
   <link rel="stylesheet" href="../shared/style.css" />
   <style>
     .image-adjust-layout {
@@ -40,6 +40,237 @@
       justify-content: center;
     }
 
+    /* Woobiecore file input styling */
+    #image-upload {
+      background-color: black !important;
+      border: 2px solid #33ff33 !important;
+      color: #33ff33 !important;
+      padding: 0.5rem 1rem !important;
+      border-radius: 5px !important;
+      font-family: 'Atkinson Hyperlegible', monospace !important;
+      cursor: pointer !important;
+      transition: all 0.3s !important;
+      display: block !important;
+      width: auto !important;
+      margin: 1rem auto !important;
+    }
+
+    #image-upload:hover {
+      background-color: #33ff33 !important;
+      color: black !important;
+      box-shadow: 0 0 10px #33ff33 !important;
+    }
+
+    #image-upload::file-selector-button {
+      background-color: #111111;
+      border: 1px solid #33ff33;
+      color: #33ff33;
+      padding: 0.3rem 0.8rem;
+      border-radius: 3px;
+      margin-right: 0.5rem;
+      font-family: 'Atkinson Hyperlegible', monospace;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    #image-upload::file-selector-button:hover {
+      background-color: #33ff33;
+      color: black;
+    }
+
+    /* Woobiecore range slider styling */
+    input[type="range"] {
+      appearance: none !important;
+      background: transparent !important;
+      cursor: pointer !important;
+      width: 100% !important;
+      height: 6px !important;
+      border-radius: 3px !important;
+      background: linear-gradient(to right, #111111 0%, #33ff33 50%, #00ffff 100%) !important;
+      border: 1px solid #33ff33 !important;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none !important;
+      background: #33ff33 !important;
+      height: 20px !important;
+      width: 20px !important;
+      border-radius: 50% !important;
+      border: 2px solid #00ffff !important;
+      cursor: pointer !important;
+      box-shadow: 0 0 5px #33ff33 !important;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      background: #33ff33 !important;
+      height: 20px !important;
+      width: 20px !important;
+      border-radius: 50% !important;
+      border: 2px solid #00ffff !important;
+      cursor: pointer !important;
+      box-shadow: 0 0 5px #33ff33 !important;
+    }
+
+    /* Woobiecore recording button styling */
+    #start-recording, #stop-recording, #play-audio, #reset-audio {
+      background-color: black !important;
+      border: 2px solid #33ff33 !important;
+      color: #33ff33 !important;
+      padding: 0.5rem 1rem !important;
+      margin: 0.25rem !important;
+      border-radius: 5px !important;
+      font-family: 'Atkinson Hyperlegible', monospace !important;
+      cursor: pointer !important;
+      transition: all 0.3s !important;
+      font-size: 0.9rem !important;
+    }
+
+    #start-recording:hover, #play-audio:hover {
+      background-color: #33ff33 !important;
+      color: black !important;
+      box-shadow: 0 0 8px #33ff33 !important;
+    }
+
+    #stop-recording:hover {
+      background-color: #ff6666 !important;
+      color: black !important;
+      border-color: #ff6666 !important;
+      box-shadow: 0 0 8px #ff6666 !important;
+    }
+
+    #reset-audio:hover {
+      background-color: #ffb000 !important;
+      color: black !important;
+      border-color: #ffb000 !important;
+      box-shadow: 0 0 8px #ffb000 !important;
+    }
+
+    #start-recording:disabled, #stop-recording:disabled, #play-audio:disabled, #reset-audio:disabled {
+      opacity: 0.4 !important;
+      cursor: not-allowed !important;
+      border-color: #666666 !important;
+      color: #666666 !important;
+    }
+
+    /* Recording indicator styling */
+    #recording-indicator {
+      color: #ff3333 !important;
+      text-shadow: 0 0 5px #ff3333 !important;
+      animation: recordingPulse 1s ease-in-out infinite alternate !important;
+      font-family: 'Atkinson Hyperlegible', monospace !important;
+    }
+
+    @keyframes recordingPulse {
+      from { opacity: 0.6; }
+      to { opacity: 1; }
+    }
+
+    /* Audio controls styling - woobiecore theme */
+    #audio-preview {
+      background-color: #111111 !important;
+      border: 2px solid #33ff33 !important;
+      border-radius: 5px !important;
+      width: 100% !important;
+      margin-top: 0.5rem !important;
+      height: 50px !important;
+      outline: none !important;
+    }
+
+    /* Custom audio player styling */
+    #audio-preview::-webkit-media-controls-panel {
+      background-color: #111111 !important;
+      border: none !important;
+    }
+
+    #audio-preview::-webkit-media-controls-play-button,
+    #audio-preview::-webkit-media-controls-pause-button {
+      background-color: #33ff33 !important;
+      border-radius: 50% !important;
+      border: 1px solid #00ffff !important;
+      width: 35px !important;
+      height: 35px !important;
+      margin: 5px !important;
+    }
+
+    #audio-preview::-webkit-media-controls-timeline {
+      background-color: #222222 !important;
+      border-radius: 25px !important;
+      margin: 0 10px !important;
+      border: 1px solid #33ff33 !important;
+    }
+
+    #audio-preview::-webkit-media-controls-time-remaining-display,
+    #audio-preview::-webkit-media-controls-current-time-display {
+      color: #33ff33 !important;
+      font-family: 'Atkinson Hyperlegible', monospace !important;
+      font-size: 12px !important;
+      text-shadow: 0 0 3px #33ff33 !important;
+    }
+
+    #audio-preview::-webkit-media-controls-volume-slider {
+      background-color: #222222 !important;
+      border: 1px solid #33ff33 !important;
+      border-radius: 25px !important;
+    }
+
+    #audio-preview::-webkit-media-controls-mute-button {
+      background-color: #33ff33 !important;
+      border-radius: 3px !important;
+      border: 1px solid #00ffff !important;
+    }
+
+    /* Alternative: Custom audio controls wrapper for non-webkit browsers */
+    .audio-wrapper {
+      background-color: #111111;
+      border: 2px solid #33ff33;
+      border-radius: 5px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 0.5rem;
+      box-shadow: 0 0 5px rgba(51, 255, 51, 0.3);
+    }
+
+    .audio-wrapper button {
+      background-color: #33ff33 !important;
+      color: black !important;
+      border: 1px solid #00ffff !important;
+      border-radius: 50% !important;
+      width: 35px !important;
+      height: 35px !important;
+      cursor: pointer !important;
+      font-family: 'Atkinson Hyperlegible', monospace !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .audio-wrapper .time-display {
+      color: #33ff33;
+      font-family: 'Atkinson Hyperlegible', monospace;
+      font-size: 12px;
+      text-shadow: 0 0 3px #33ff33;
+      min-width: 40px;
+    }
+
+    .audio-wrapper .progress-bar {
+      flex: 1;
+      height: 6px;
+      background-color: #222222;
+      border: 1px solid #33ff33;
+      border-radius: 25px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .audio-wrapper .progress-fill {
+      height: 100%;
+      background: linear-gradient(to right, #33ff33, #00ffff);
+      border-radius: 25px;
+      transition: width 0.1s;
+    }
+
     @media (max-width: 768px) {
       .image-adjust-layout {
         flex-direction: column !important;
@@ -59,32 +290,8 @@
         text-align: center;
       }
 
-      .image-controls-block input[type="range"] {
-        appearance: none;
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        background: radial-gradient(circle at center, #33ff33 2px, #111 3px);
-        border: 2px solid #33ff33;
-        transform: rotate(-90deg);
-        margin: 0 auto;
-        position: relative;
-      }
-
-      .image-controls-block input[type="range"]::-webkit-slider-thumb {
-        appearance: none;
-        background: #33ff33;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        cursor: pointer;
-        margin-top: -4px;
-      }
-
       .image-controls-block {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
         gap: 1rem;
       }
@@ -94,7 +301,7 @@
 <body>
   <div class="container">
     <h1>🎁 Share Your Tier 2 Reward</h1>
-    <p>You’ve completed Tier 2! Now you can send your match a small reward — a note, a sketch, or a voice message.</p>
+    <p>You've completed Tier 2! Now you can send your match a small reward — a note, a sketch, or a voice message.</p>
 
     <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
 
@@ -111,7 +318,7 @@
           <div id="color-buttons" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
             <button class="color-btn" data-color="#33ff33" style="background:#33ff33;"></button>
             <button class="color-btn" data-color="#00ffff" style="background:#00ffff;"></button>
-            <button class="color-btn" data-color="#ff9900" style="background:#ff9900;"></button>
+            <button class="color-btn" data-color="#ffb000" style="background:#ffb000;"></button>
             <button class="color-btn" data-color="#ff66ff" style="background:#ff66ff;"></button>
           </div>
         </div>
@@ -131,7 +338,7 @@
 
           <div style="display:flex; justify-content:space-between; margin-top:1rem;">
             <button id="chat-cancel-upload" class="close-adjust" style="background:#222; color:#ff3333; padding:0.5rem 1rem; border:1px solid #ff3333;">Cancel</button>
-            <button id="chat-send-upload" style="background:#000; color:#33ff33; padding:0.5rem 1rem; border:1px solid #33ff33;">Send Image ➡️</button>
+            <button id="chat-send-upload" style="background:#000; color:#33ff33; padding:0.5rem 1rem; border:1px solid #33ff33;">Send Image →</button>
           </div>
         </div>
       </div>
@@ -151,15 +358,46 @@
     </div>
   </div>
 
+  <script type="module">
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process main title
+      const title = document.querySelector('h1');
+      title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+      
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      
+      // Process section headers
+      document.querySelectorAll('h3').forEach(header => {
+        header.innerHTML = replaceEmojiWithMonochrome(header.textContent);
+      });
+      
+      // Process send image button - manually handle the arrow
+      const sendImageBtn = document.getElementById('chat-send-upload');
+      sendImageBtn.innerHTML = `Send Image <span class="woobie-emoji">→</span>`;
+      
+      // Process finalize button
+      const submitBtn = document.getElementById('submit-reward');
+      submitBtn.innerHTML = replaceEmojiWithMonochrome(submitBtn.textContent);
+    });
+
+    document.getElementById('image-upload').addEventListener('change', () => {
+      document.body.classList.add('has-image');
+    });
+  </script>
   <script type="module" src="../shared/logout.js"></script>
   <script type="module" src="./send.js"></script>
   <script type="module" src="./image-editor.js"></script>
   <script type="module" src="./retro-upload-toggle.js"></script>
   <script type="module" src="./tier2-audio.js"></script>
-  <script>
-    document.getElementById('image-upload').addEventListener('change', () => {
-      document.body.classList.add('has-image');
-    });
-  </script>
 </body>
 </html>

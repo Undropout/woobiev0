@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Testing - Woobie</title>
+  <link rel="stylesheet" href="../shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>📧 Email Testing Dashboard</h1>
+    
+    <div class="testing-section">
+      <h2>🔍 Check Your Status</h2>
+      <p>See what stage you're stuck at and whether you'd receive an email today.</p>
+      
+      <button id="check-status" class="woobie-button">Check My Status</button>
+      
+      <div id="status-result" style="display: none; margin-top: 1rem;">
+        <!-- Status will be displayed here -->
+      </div>
+    </div>
+    
+    <div class="testing-section">
+      <h2>📨 Send Test Email</h2>
+      <p>Send yourself a test nudge email to see what it looks like.</p>
+      
+      <button id="send-test" class="woobie-button">Send Test Email</button>
+      
+      <div id="test-result" style="display: none; margin-top: 1rem;">
+        <!-- Test result will be displayed here -->
+      </div>
+    </div>
+    
+    <div class="testing-section">
+      <h2>📊 Recent Email Analytics</h2>
+      <p>View recent daily nudge email statistics.</p>
+      
+      <button id="load-analytics" class="woobie-button">Load Analytics</button>
+      
+      <div id="analytics-result" style="display: none; margin-top: 1rem;">
+        <!-- Analytics will be displayed here -->
+      </div>
+    </div>
+    
+    <div class="testing-section">
+      <h2>⚙️ Manual Controls</h2>
+      <p>For testing purposes only - don't use in production!</p>
+      
+      <button id="reset-daily-email" class="woobie-button danger">Reset Daily Email Flag</button>
+      <button id="trigger-daily-run" class="woobie-button danger">Trigger Daily Run (All Users)</button>
+      
+      <div id="manual-result" style="display: none; margin-top: 1rem;">
+        <!-- Manual action results will be displayed here -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from '../shared/firebase-config.js';
+    import { ref, get, update } from 'firebase/database';
+    import { onAuthStateChanged } from 'firebase/auth';
+    import { getFunctions, httpsCallable } from 'firebase/functions';
+
+    const functions = getFunctions();
+    
+    let currentUser = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        alert("You must be logged in to access this page.");
+        window.location.href = '/auth/login.html';
+        return;
+      }
+      
+      currentUser = user;
+      setupEventListeners();
+    });
+
+    function setupEventListeners() {
+      document.getElementById('check-status').addEventListener('click', checkUserStatus);
+      document.getElementById('send-test').addEventListener('click', sendTestEmail);
+      document.getElementById('load-analytics').addEventListener('click', loadAnalytics);
+      document.getElementById('reset-daily-email').addEventListener('click', resetDailyEmailFlag);
+      document.getElementById('trigger-daily-run').addEventListener('click', triggerDailyRun);
+    }
+
+    async function checkUserStatus() {
+      const button = document.getElementById('check-status');
+      const result = document.getElementById('status-result');
+      
+      button.textContent = 'Checking...';
+      button.disabled = true;
+      
+      try {
+        const checkStatus = httpsCallable(functions, 'checkUserNudgeStatus');
+        const response = await checkStatus();
+        const data = response.data;
+        
+        if (!data.hasMatch) {
+          result.innerHTML = `
+            <div class="error">
+              <h3>❌ No Active Match</h3>
+              <p>You don't have an active match, so no daily emails would be sent.</p>
+            </div>
+          `;
+        } else {
+          const canSend = data.canSendToday ? '✅ Yes' : '❌ No (already sent today)';
+          const stageColor = data.stuckStage.stage === 'none' ? '#99ff99' : '#ffb000';
+          
+          result.innerHTML = `
+            <div class="success">
+              <h3>📊 Your Status</h3>
+              <p><strong>Match:</strong> ${data.partnerName}</p>
+              <p><strong>Current Stage:</strong> <span style="color: ${stageColor}">${data.stuckStage.stage}</span></p>
+              <p><strong>Description:</strong> ${data.stuckStage.description}</p>
+              <p><strong>Can Send Email Today:</strong> ${canSend}</p>
+              <p><strong>Last Email Sent:</strong> ${data.lastDailyEmail || 'Never'}</p>
+            </div>
+          `;
+        }
+        
+        result.style.display = 'block';
+        
+      } catch (error) {
+        result.innerHTML = `
+          <div class="error">
+            <h3>❌ Error</h3>
+            <p>Failed to check status: ${error.message}</p>
+          </div>
+        `;
+        result.style.display = 'block';
+      } finally {
+        button.textContent = 'Check My Status';
+        button.disabled = false;
+      }
+    }
+
+    async function sendTestEmail() {
+      const button = document.getElementById('send-test');
+      const result = document.getElementById('test-result');
+      
+      button.textContent = 'Sending...';
+      button.disabled = true;
+      
+      try {
+        const sendTest = httpsCallable(functions, 'sendTestNudgeEmail');
+        const response = await sendTest();
+        const data = response.data;
+        
+        if (data.result.sent) {
+          result.innerHTML = `
+            <div class="success">
+              <h3>✅ Test Email Sent!</h3>
+              <p><strong>Stage:</strong> ${data.result.stage}</p>
+              <p><strong>Description:</strong> ${data.result.description}</p>
+              <p>Check your email inbox in a few minutes.</p>
+            </div>
+          `;
+        } else {
+          result.innerHTML = `
+            <div class="warning">
+              <h3>⚠️ No Email Sent</h3>
+              <p><strong>Reason:</strong> ${data.result.reason}</p>
+              <p>This means you wouldn't receive a daily nudge email today.</p>
+            </div>
+          `;
+        }
+        
+        result.style.display = 'block';
+        
+      } catch (error) {
+        console.error('Error sending test email:', error);
+        result.innerHTML = `
+          <div class="error">
+            <h3>❌ Error</h3>
+            <p>Failed to send test email: ${error.message}</p>
+          </div>
+        `;
+        result.style.display = 'block';
+      } finally {
+        button.textContent = 'Send Test Email';
+        button.disabled = false;
+      }
+    }
+
+    async function loadAnalytics() {
+      const button = document.getElementById('load-analytics');
+      const result = document.getElementById('analytics-result');
+      
+      button.textContent = 'Loading...';
+      button.disabled = true;
+      
+      try {
+        // Get last 7 days of analytics
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          last7Days.push(date.toISOString().split('T')[0]);
+        }
+        
+        const analyticsData = {};
+        for (const date of last7Days) {
+          const analyticsRef = ref(db, `emailAnalytics/dailyNudge/${date}`);
+          const snapshot = await get(analyticsRef);
+          analyticsData[date] = snapshot.val();
+        }
+        
+        displayAnalytics(analyticsData, last7Days, result);
+        result.style.display = 'block';
+        
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+        result.innerHTML = `
+          <div class="error">
+            <h3>❌ Error</h3>
+            <p>Failed to load analytics: ${error.message}</p>
+          </div>
+        `;
+        result.style.display = 'block';
+      } finally {
+        button.textContent = 'Load Analytics';
+        button.disabled = false;
+      }
+    }
+
+    function displayAnalytics(analyticsData, dates, container) {
+      let totalSent = 0;
+      let totalChecked = 0;
+      
+      const rows = dates.map(date => {
+        const data = analyticsData[date];
+        if (!data) {
+          return `
+            <tr>
+              <td>${date}</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+          `;
+        }
+        
+        totalSent += data.emailsSent || 0;
+        totalChecked += data.usersChecked || 0;
+        
+        const successRate = data.successRate ? (data.successRate * 100).toFixed(1) : '0';
+        
+        return `
+          <tr>
+            <td>${date}</td>
+            <td>${data.usersChecked || 0}</td>
+            <td>${data.emailsSent || 0}</td>
+            <td>${data.skipped || 0}</td>
+            <td>${successRate}%</td>
+          </tr>
+        `;
+      }).join('');
+      
+      const avgSentPerDay = dates.length > 0 ? (totalSent / dates.length).toFixed(1) : '0';
+      
+      container.innerHTML = `
+        <div class="analytics">
+          <h3>📊 Last 7 Days</h3>
+          
+          <div class="summary-stats">
+            <div class="stat-box">
+              <strong>${totalSent}</strong>
+              <span>Total Emails Sent</span>
+            </div>
+            <div class="stat-box">
+              <strong>${avgSentPerDay}</strong>
+              <span>Average Per Day</span>
+            </div>
+            <div class="stat-box">
+              <strong>${totalChecked}</strong>
+              <span>Total Users Checked</span>
+            </div>
+          </div>
+          
+          <table class="analytics-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Users Checked</th>
+                <th>Emails Sent</th>
+                <th>Skipped</th>
+                <th>Success Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function resetDailyEmailFlag() {
+      if (!confirm('Reset your daily email flag? This will allow you to receive another test email today.')) {
+        return;
+      }
+      
+      const button = document.getElementById('reset-daily-email');
+      const result = document.getElementById('manual-result');
+      
+      button.textContent = 'Resetting...';
+      button.disabled = true;
+      
+      try {
+        const userRef = ref(db, `users/${currentUser.uid}`);
+        await update(userRef, {
+          lastDailyEmail: null
+        });
+        
+        result.innerHTML = `
+          <div class="success">
+            <h3>✅ Reset Complete</h3>
+            <p>Your daily email flag has been cleared. You can now receive another test email today.</p>
+          </div>
+        `;
+        result.style.display = 'block';
+        
+      } catch (error) {
+        console.error('Error resetting flag:', error);
+        result.innerHTML = `
+          <div class="error">
+            <h3>❌ Error</h3>
+            <p>Failed to reset flag: ${error.message}</p>
+          </div>
+        `;
+        result.style.display = 'block';
+      } finally {
+        button.textContent = 'Reset Daily Email Flag';
+        button.disabled = false;
+      }
+    }
+
+    async function triggerDailyRun() {
+      if (!confirm('Trigger the daily email run for ALL users? This should only be used for testing!')) {
+        return;
+      }
+      
+      const button = document.getElementById('trigger-daily-run');
+      const result = document.getElementById('manual-result');
+      
+      button.textContent = 'Triggering...';
+      button.disabled = true;
+      
+      try {
+        const triggerDaily = httpsCallable(functions, 'sendDailyNudgeEmails');
+        const response = await triggerDaily();
+        const data = response.data;
+        
+        result.innerHTML = `
+          <div class="success">
+            <h3>✅ Daily Run Complete</h3>
+            <p><strong>Users Checked:</strong> ${data.usersChecked}</p>
+            <p><strong>Emails Sent:</strong> ${data.emailsSent}</p>
+            <p>Check the analytics section for detailed results.</p>
+          </div>
+        `;
+        result.style.display = 'block';
+        
+      } catch (error) {
+        console.error('Error triggering daily run:', error);
+        result.innerHTML = `
+          <div class="error">
+            <h3>❌ Error</h3>
+            <p>Failed to trigger daily run: ${error.message}</p>
+          </div>
+        `;
+        result.style.display = 'block';
+      } finally {
+        button.textContent = 'Trigger Daily Run (All Users)';
+        button.disabled = false;
+      }
+    }
+  </script>
+
+  <style>
+    .testing-section {
+      margin: 2rem 0;
+      padding: 1.5rem;
+      border: 1px solid #33ff33;
+      border-radius: 8px;
+      background-color: #1a1a1a;
+    }
+
+    .success {
+      background-color: rgba(51, 255, 51, 0.1);
+      border: 1px solid #33ff33;
+      color: #33ff33;
+      padding: 1rem;
+      border-radius: 4px;
+    }
+
+    .error {
+      background-color: rgba(255, 102, 102, 0.1);
+      border: 1px solid #ff6666;
+      color: #ff6666;
+      padding: 1rem;
+      border-radius: 4px;
+    }
+
+    .warning {
+      background-color: rgba(255, 176, 0, 0.1);
+      border: 1px solid #ffb000;
+      color: #ffb000;
+      padding: 1rem;
+      border-radius: 4px;
+    }
+
+    .summary-stats {
+      display: flex;
+      gap: 1rem;
+      margin: 1rem 0;
+      flex-wrap: wrap;
+    }
+
+    .stat-box {
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+      padding: 1rem;
+      background-color: #2a2a2a;
+      border: 1px solid #33ff33;
+      border-radius: 4px;
+    }
+
+    .stat-box strong {
+      display: block;
+      font-size: 1.5rem;
+      color: #33ff33;
+    }
+
+    .stat-box span {
+      font-size: 0.9rem;
+      color: #99ff99;
+    }
+
+    .analytics-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .analytics-table th,
+    .analytics-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #33ff33;
+    }
+
+    .analytics-table th {
+      background-color: #2a2a2a;
+      color: #33ff33;
+      font-weight: bold;
+    }
+
+    .analytics-table td {
+      color: #99ff99;
+    }
+
+    .analytics-table tr:hover {
+      background-color: rgba(51, 255, 51, 0.1);
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .summary-stats {
+        flex-direction: column;
+      }
+      
+      .analytics-table {
+        font-size: 0.9rem;
+      }
+      
+      .analytics-table th,
+      .analytics-table td {
+        padding: 0.5rem;
+      }
+    }
+  </style>
+</body>
+</html>

@@ -9,41 +9,54 @@
 <body>
   <div class="container">
     <h1>Tier 1b: Tell us more about you</h1>
-
     <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
-
     <div id="question-block">
       <p id="question-number"></p>
       <p id="question-text"></p>
       <textarea id="answer" rows="5" placeholder="Type your answer here..."></textarea>
-      <button id="submit-btn" class="woobie-button">Next ➡️</button>
+      <button id="submit-btn" class="woobie-button">Next →</button>
     </div>
-
     <div id="completion-message" style="display:none;">
       <h2>Waiting for your match...</h2>
       <p>Once both of you finish, you'll review each other's answers and send a message.</p>
     </div>
-
-    <div id="tier1b-review"></div> </div>
-
+    <div id="tier1b-review"></div>
+  </div>
+  
   <script type="module">
     import { auth, db } from '../shared/firebase-config.js';
     import { ref, update } from 'firebase/database';
     import { onAuthStateChanged } from 'firebase/auth';
+
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      
+      // Process next button - manually handle the arrow
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.innerHTML = `Next <span class="woobie-emoji">→</span>`;
+    });
 
     // This event listener "tier1bComplete" needs to be dispatched from tier1b.js
     // Consider the timing of this stage update more carefully within tier1b.js
     window.addEventListener("tier1bComplete", () => {
       onAuthStateChanged(auth, async (user) => {
         if (!user) return;
-
         console.log("tier1bComplete event triggered, updating stage for user:", user.uid);
         const userMatchProgressRef = ref(db, `users/${user.uid}/currentMatch`);
         await update(userMatchProgressRef, { stage: 'tier1b-complete' });
       });
     });
   </script>
-
   <script type="module" src="./tier1b.js"></script>
   <script type="module" src="../shared/logout.js"></script>
 </body>

@@ -5,43 +5,82 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Login – Woobie</title>
   <link rel="stylesheet" href="../shared/style.css" />
+  <style>
+    /* Override input styling for woobiecore aesthetic */
+    input[type="email"], input[type="password"] {
+      background-color: #111111 !important;
+      border: 2px solid #33ff33 !important;
+      color: #33ff33 !important;
+    }
+    
+    input[type="email"]:focus, input[type="password"]:focus {
+      background-color: #111111 !important;
+      border: 2px solid #00ffff !important;
+      box-shadow: 0 0 5px #00ffff !important;
+    }
+    
+    /* Woobiecore cyan link */
+    a {
+      color: #00ffff !important;
+      text-decoration: none;
+    }
+    
+    a:hover {
+      color: #33ff33 !important;
+      text-shadow: 0 0 3px #33ff33;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>🔐 Login to Woobie</h1>
-
     <!-- 🚪 Log out -->
     <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
-
     <form id="login-form">
       <label for="email">Email:</label>
       <input type="email" id="email" required />
-
       <label for="password">Password:</label>
       <input type="password" id="password" required />
-
-      <button type="submit" class="woobie-button">Login ➡️</button>
+      <button type="submit" class="woobie-button">Login → </button>
     </form>
-
-    <p>Don’t have an account? <a href="/auth/signup.html">Sign up here</a></p>
+    <p>Don't have an account? <a href="/auth/signup.html">Sign up here</a></p>
   </div>
-
+  
   <script type="module">
     import { auth } from '../shared/firebase-config.js';
     import { signInWithEmailAndPassword } from 'firebase/auth';
+
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process title
+      const title = document.querySelector('h1');
+      title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+      
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      
+      // Process login button - manually handle the arrow
+      const loginBtn = document.querySelector('button[type="submit"]');
+      loginBtn.innerHTML = `Login <span class="woobie-emoji">→</span>`;
+    });
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-
         localStorage.setItem('woobieEmail', user.email);
         localStorage.setItem('woobieUID', user.uid);
-
         // Send to session resume handler
         window.location.href = '/resume.html';
       } catch (err) {

@@ -9,56 +9,66 @@
 <body>
   <div class="container">
     <h1>Tier 1a: Stick your neck out a little </h1>
-
     <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
-
     <div id="question-block">
       <p id="question-number"></p>
       <p id="question-text"></p>
       <textarea id="answer" rows="5" placeholder="Type your answer here..."></textarea>
-      <button id="submit-btn" class="woobie-button">Next ➡️</button>
+      <button id="submit-btn" class="woobie-button">Next →</button>
     </div>
-
     <div id="completion-message" style="display:none;">
       <h2>Waiting for your match...</h2>
       <p>Once both of you finish, you'll exchange answers and vote to continue.</p>
     </div>
-
     <div id="review" style="display:none;"></div>
   </div>
-
+  
   <script type="module">
     import { auth, db } from '../shared/firebase-config.js';
     import { ref, update } from 'firebase/database';
     import { onAuthStateChanged, signOut } from 'firebase/auth';
 
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      
+      // Process next button - manually handle the arrow
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.innerHTML = `Next <span class="woobie-emoji">→</span>`;
+    });
+
     const logoutBtn = document.getElementById('logout-button');
     logoutBtn.onclick = async () => {
       const confirmLogout = confirm("Are you sure you want to log out? You'll lose your place unless you're logged in.");
       if (!confirmLogout) return;
-
       try {
         await signOut(auth);
       } catch (err) {
         console.warn('Firebase sign-out failed:', err);
       }
-
       localStorage.clear();
       sessionStorage.clear();
       window.location.href = '/index.html';
     };
-
+    
     // Hook into Firebase auth to ensure stage is updated after completion
     window.addEventListener("tier1aComplete", () => {
       onAuthStateChanged(auth, async (user) => {
         if (!user) return;
-
         const userRef = ref(db, `users/${user.uid}/currentMatch`);
         await update(userRef, { stage: 'tier1a-complete' });
       });
     });
   </script>
-
   <script type="module" src="./tier1a.js"></script>
 </body>
 </html>

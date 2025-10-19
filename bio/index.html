@@ -15,25 +15,42 @@
     <textarea id="bio-input" rows="8" placeholder="Write a little about yourself..."></textarea>
     <p id="bio-count">0 / 250 words</p>
     <p id="bio-warning" style="color: #ff6666"></p>
-    <button id="submit-bio" class="woobie-button">Submit ➡️</button>
+    <button id="submit-bio" class="woobie-button">Submit →</button>
   </div>
-
+  
   <script type="module">
     import { db, auth } from '../shared/firebase-config.js';
     import { ref, set, update } from 'firebase/database';
     import { onAuthStateChanged } from 'firebase/auth';
 
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process title
+      const title = document.querySelector('h1');
+      title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+      
+      // Process submit button - manually handle the arrow
+      const submitBtn = document.getElementById('submit-bio');
+      submitBtn.innerHTML = `Submit <span class="woobie-emoji">→</span>`;
+    });
+
     const input = document.getElementById('bio-input');
     const count = document.getElementById('bio-count');
     const warning = document.getElementById('bio-warning');
     const button = document.getElementById('submit-bio');
-
+    
     // Initial check for localStorage items to provide early feedback if needed
     if (!localStorage.getItem('woobieUsername') || !localStorage.getItem('woobieMatchID')) {
       warning.textContent = "Missing critical session data. Please go back and restart the process if issues persist.";
-      // button.disabled = true; // You might disable it, or let onAuthStateChanged handle missing data
     }
-
+    
     input.addEventListener('input', () => {
       const words = input.value.trim().split(/\s+/).filter(Boolean);
       count.textContent = `${words.length} / 250 words`;
@@ -45,48 +62,38 @@
         button.disabled = false;
       }
     });
-
+    
     button.onclick = () => {
       const text = input.value.trim();
       const words = text.split(/\s+/).filter(Boolean);
       const repeated = /(.)\1{20,}/.test(text);
-
       if (words.length > 250 || repeated) {
         warning.textContent = 'Please shorten your bio and avoid repeated characters.';
         return;
       }
-
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
           warning.textContent = "You're not logged in. Please log in again.";
-          // Optionally redirect: setTimeout(() => window.location.href = '/auth/login.html', 2000);
           return;
         }
-
-        const matchID = localStorage.getItem('woobieMatchID'); // Get matchID here
-
+        const matchID = localStorage.getItem('woobieMatchID');
         if (!matchID) {
             warning.textContent = "Match ID is missing. Please restart the process.";
             return;
         }
-
-        localStorage.setItem('woobieBio', text); // Still useful for local state if needed immediately
-
-        // *** CHANGE HERE: Use user.uid as the key in the database path ***
+        localStorage.setItem('woobieBio', text);
+        
         const bioRef = ref(db, `matches/${matchID}/bios/${user.uid}`);
         await set(bioRef, text);
-
-        // Update the user's overall progress/stage
+        
         const matchProgressRef = ref(db, `users/${user.uid}/currentMatch`);
         await update(matchProgressRef, {
           stage: 'tier1a'
         });
-
         window.location.href = '/tier1a/index.html';
       });
     };
   </script>
-  <script type="module" src="../shared/logout.js"></script>
   <script type="module" src="../shared/logout.js"></script>
 </body>
 </html>

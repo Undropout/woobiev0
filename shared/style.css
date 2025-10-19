@@ -1,169 +1,532 @@
-/* Import Google/Bunny-hosted fonts */
-@import url('https://fonts.bunny.net/css?family=atkinson-hyperlegible:400');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji');
+/* Woobie App - Performance Optimized Shared Styles */
 
-/* === PREMIUM NAME MODES === */
-.woobie-prismatic strong {
-  background: linear-gradient(270deg, red, orange, yellow, green, cyan, blue, violet, red);
-  background-size: 800% 800%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: rainbowFlow 8s linear infinite;
-}
-@keyframes rainbowFlow {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
-}
-.color-btn {
-  width: 48px;     /* 32px × 1.5 = 48px */
-  height: 48px;    /* same as width for square shape */
-  border: 2px solid #fff;
-  cursor: pointer;
-  display: inline-block;
-}
-.woobie-neon strong {
-  color: #39ff14;
-  text-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14, 0 0 15px #00ffcc;
-  animation: neonPulse 1.5s ease-in-out infinite;
-}
-@keyframes neonPulse {
-  0%, 100% {
-    text-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14, 0 0 15px #00ffcc;
-  }
-  50% {
-    text-shadow: 0 0 10px #39ff14, 0 0 20px #00ffcc, 0 0 30px #00ffcc;
-  }
+/* Font Imports */
+@import url('https://fonts.bunny.net/css?family=atkinson-hyperlegible:400,400i,700,700i');
+
+/* OpenMoji Font Face */
+@font-face {
+  font-family: 'OpenMoji';
+  src: url('/shared/OpenMoji-black-glyf.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-.woobie-cosmic strong {
-  position: relative;
-  color: #bb86fc;
-  text-shadow: 0 0 5px #bb86fc, 0 0 10px #3700b3;
-}
-.woobie-cosmic strong::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(white 1px, transparent 1px);
-  background-size: 3px 3px;
-  animation: starDrift 60s linear infinite;
-  opacity: 0.15;
-  pointer-events: none;
-  z-index: -1;
-}
-@keyframes starDrift {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(-100vw, -100vh); }
-}
-
-/* === GLOBAL === */
-body {
-  background-color: black;
-  color: #00ff00;
-  font-family: 'Atkinson Hyperlegible', sans-serif;
+/* Global Styles */
+* {
   margin: 0;
-  padding: 2rem;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.container {
-  max-width: 700px;
-  margin: 0 auto;
-  text-align: center;
-  padding: 2rem;
-  border: 2px solid #00ff00;
-  border-radius: 10px;
-  background-color: #121212;
-  box-shadow: 0 0 10px #00ff00;
-}
-
-.woobie-button,
-.name-button {
+body {
+  font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
   background-color: black;
-  border: 2px solid #00ff00;
-  color: #00ff00;
-  font-family: 'Atkinson Hyperlegible', sans-serif;
-  padding: 0.5rem 1rem;
+  color: #33ff33;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+/* Container */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #121212;
+  border: 2px solid #33ff33;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 0 20px rgba(51, 255, 51, 0.3);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  color: #33ff33;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+p {
+  margin-bottom: 1rem;
+  color: #33ff33;
+}
+
+/* Links */
+a {
+  color: #00ffff;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #33ff33;
+}
+
+/* Form Elements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background-color: #1a1a1a;
+  border: 1px solid #33ff33;
+  border-radius: 4px;
+  color: #33ff33;
+  font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
   font-size: 1rem;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #00ffff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Buttons */
+.woobie-button,
+button {
+  background-color: #1a1a1a;
+  border: 1px solid #33ff33;
+  color: #33ff33;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
   cursor: pointer;
-  margin: 0.5rem;
-  border-radius: 5px;
-  transition: all 0.3s;
+  font-family: 'Atkinson Hyperlegible', Arial, sans-serif;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  text-decoration: none;
   display: inline-block;
+  margin: 0.25rem;
 }
 
 .woobie-button:hover,
-.woobie-button.selected,
-.name-button:hover,
-.name-button.selected {
-  background-color: #00ff00;
+button:hover {
+  background-color: #33ff33;
   color: black;
-  box-shadow: 0 0 10px #00ff00;
+  box-shadow: 0 0 15px rgba(51, 255, 51, 0.5);
+  transform: translateY(-2px);
 }
 
+.woobie-button:active,
+button:active {
+  transform: translateY(0);
+}
+
+/* Primary Button Variant */
+.woobie-button.primary {
+  background-color: #33ff33;
+  color: black;
+}
+
+.woobie-button.primary:hover {
+  background-color: #00ffff;
+  color: black;
+}
+
+/* Secondary Button Variant */
+.woobie-button.secondary {
+  border-color: #00ffff;
+  color: #00ffff;
+}
+
+.woobie-button.secondary:hover {
+  background-color: #00ffff;
+  color: black;
+}
+
+/* Danger Button Variant */
+.woobie-button.danger {
+  border-color: #ff6666;
+  color: #ff6666;
+}
+
+.woobie-button.danger:hover {
+  background-color: #ff6666;
+  color: black;
+}
+
+/* PERFORMANCE OPTIMIZED WOOBIECORE VISUAL EFFECTS */
+
+/* Normal Mode */
+.woobie-normal {
+  color: #33ff33;
+}
+
+/* FIXED: Simplified Prismatic Mode - Much less CPU intensive */
+.woobie-prismatic {
+  color: #ff6b9d;
+  background: linear-gradient(45deg, #ff6b9d, #c44569, #f8b500, #7bed9f, #70a1ff, #5352ed, #ff4757);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: prismaticShimmer 4s ease-in-out infinite;
+  /* CRITICAL: Use will-change to optimize animation */
+  will-change: background-position;
+}
+
+/* FIXED: Optimized Neon Mode - Reduced complexity */
+.woobie-neon {
+  color: #00ffff;
+  text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff;
+  animation: neonGlow 3s ease-in-out infinite alternate;
+  will-change: text-shadow;
+}
+
+/* FIXED: Heavily optimized Cosmic Mode - Removed pseudo-elements */
+.woobie-cosmic {
+  color: #ff66ff;
+  text-shadow: 0 0 8px #ff99ff, 0 0 12px #cc00ff;
+  animation: cosmicPulse 3s ease-in-out infinite alternate;
+  will-change: text-shadow;
+  /* Removed ::before and ::after pseudo-elements that were causing performance issues */
+}
+
+/* PERFORMANCE CRITICAL: Simplified animations with GPU acceleration */
+@keyframes prismaticShimmer {
+  0% { 
+    background-position: 0% 50%; 
+    transform: translateZ(0); /* Force GPU acceleration */
+  }
+  50% { 
+    background-position: 100% 50%; 
+    transform: translateZ(0);
+  }
+  100% { 
+    background-position: 0% 50%; 
+    transform: translateZ(0);
+  }
+}
+
+@keyframes neonGlow {
+  from {
+    text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff;
+    transform: translateZ(0);
+  }
+  to {
+    text-shadow: 0 0 10px #00ffff, 0 0 15px #00ffff, 0 0 20px #00ffff;
+    transform: translateZ(0);
+  }
+}
+
+@keyframes cosmicPulse {
+  from {
+    text-shadow: 0 0 5px #ff66ff, 0 0 8px #ff99ff;
+    transform: translateZ(0);
+  }
+  to {
+    text-shadow: 0 0 12px #cc00ff, 0 0 15px #ffccff;
+    transform: translateZ(0);
+  }
+}
+
+/* REMOVED: Computationally expensive sparkle animations that were causing crashes */
+
+/* Body mode classes for theme switching - Simplified */
+.normal-mode {
+  /* Default styling already applied above */
+}
+
+.prismatic-mode {
+  background: radial-gradient(circle at center, #1a0d1a 0%, black 100%);
+}
+
+.neon-mode {
+  background: radial-gradient(circle at center, #001a1a 0%, black 100%);
+}
+
+.cosmic-mode {
+  background: radial-gradient(circle at center, #1a0033 0%, black 100%);
+}
+
+/* Name picker specific styles */
 .option-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-  margin: 1rem auto;
-  max-width: 600px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
 }
 
-input[type="text"],
-input[type="file"],
-input[type="range"],
-select,
-textarea {
-  width: 100%;
-  max-width: 600px;
-  padding: 0.5rem;
-  margin: 1rem auto;
-  border: 2px solid #00ff00;
-  border-radius: 5px;
-  background-color: #000;
-  color: #00ff00;
-  display: block;
-  font-family: 'Atkinson Hyperlegible', sans-serif;
-}
-
-textarea {
-  height: 200px;
-}
-
-canvas {
-  display: block;
-  margin: 1rem auto;
-  border: 1px solid #00ff00;
-  image-rendering: pixelated;
-}
-
-.visually-hidden {
-  position: absolute !important;
-  height: 1px; width: 1px;
+.name-button {
+  padding: 1rem;
+  text-align: center;
+  position: relative;
   overflow: hidden;
-  clip: rect(1px, 1px, 1px, 1px);
-  white-space: nowrap;
-  border: 0;
+  /* CRITICAL: Limit animations to reduce performance impact */
+  animation-duration: 4s; /* Slower = less CPU */
+  animation-timing-function: ease-in-out;
 }
 
-[hidden] {
+.name-button.selected {
+  border-color: #00ffff;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+/* SIMPLIFIED: Premium button styling without complex animations */
+.premium {
+  position: relative;
+}
+
+.premium::after {
+  content: "✨";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 0.8em;
+  color: #ffb000;
+  text-shadow: 0 0 5px #ffb000; /* Reduced complexity */
+}
+
+/* WOOBIECORE EMOJI TREATMENT - Optimized */
+.woobie-emoji {
+  font-family: 'OpenMoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif !important;
+  color: #ffb000 !important;
+  text-shadow: 0 0 8px #ffb000 !important; /* Simplified shadow */
+  display: inline-block;
+  /* Don't animate emojis - they cause performance issues */
+}
+
+/* Firefox-specific fix - force OpenMoji font */
+@-moz-document url-prefix() {
+  .woobie-emoji {
+    font-family: 'OpenMoji', monospace !important;
+    color: #ffb000 !important;
+    text-shadow: 0 0 8px #ffb000 !important;
+    display: inline-block;
+    font-weight: normal !important;
+    font-style: normal !important;
+    font-size: 1em !important;
+    line-height: 1 !important;
+  }
+}
+
+/* PERFORMANCE: Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .woobie-prismatic,
+  .woobie-neon,
+  .woobie-cosmic {
+    animation: none;
+  }
+  
+  .woobie-prismatic {
+    color: #ff6b9d;
+    background: none;
+    -webkit-text-fill-color: initial;
+  }
+  
+  .woobie-neon {
+    text-shadow: 0 0 5px #00ffff;
+  }
+  
+  .woobie-cosmic {
+    text-shadow: 0 0 5px #ff66ff;
+  }
+}
+
+/* Lists */
+ul, ol {
+  margin-left: 2rem;
+  margin-bottom: 1rem;
+}
+
+li {
+  margin-bottom: 0.5rem;
+  color: #33ff33;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #33ff33;
+}
+
+th {
+  background-color: #1a1a1a;
+  color: #33ff33;
+  font-weight: bold;
+}
+
+td {
+  color: #33ff33;
+}
+
+/* Cards/Sections */
+.card {
+  background-color: #1a1a1a;
+  border: 1px solid #33ff33;
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Loading/Status Messages */
+.loading {
+  text-align: center;
+  color: #00ffff;
+  font-style: italic;
+}
+
+.success {
+  color: #33ff33;
+  background-color: rgba(51, 255, 51, 0.1);
+  border: 1px solid #33ff33;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.error {
+  color: #ff6666;
+  background-color: rgba(255, 102, 102, 0.1);
+  border: 1px solid #ff6666;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.warning {
+  color: #ffb000;
+  background-color: rgba(255, 176, 0, 0.1);
+  border: 1px solid #ffb000;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+/* Modal/Overlay Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #121212;
+  border: 2px solid #33ff33;
+  border-radius: 8px;
+  padding: 2rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.hidden {
   display: none !important;
 }
-.image-adjust-layout {
-  display: flex;
-  flex-direction: row;
-  gap: 2rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
+
+.visible {
+  display: block !important;
 }
 
-.image-preview-block {
-  flex: 1 1 40%;
+.flex {
   display: flex;
-  flex-direction: column;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
   align-items: center;
 }
 
-.image-controls-block {
-  flex: 1 1 50%;
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.margin-top {
+  margin-top: 1rem;
+}
+
+.margin-bottom {
+  margin-bottom: 1rem;
+}
+
+.padding {
+  padding: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+  }
+  
+  h2 {
+    font-size: 1.25rem;
+  }
+  
+  .woobie-button,
+  button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .option-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* PERFORMANCE: Disable animations on mobile */
+  .woobie-prismatic,
+  .woobie-neon,
+  .woobie-cosmic {
+    animation-duration: 6s; /* Much slower on mobile */
+  }
 }

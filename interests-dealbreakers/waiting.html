@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Waiting for Match...</title>
-    <link rel="stylesheet" href="../shared/style.css" /> </head>
+    <link rel="stylesheet" href="../shared/style.css" />
+</head>
 <body>
     <div class="container">
         <h1>⏳ Waiting for a Woobie Friend...</h1>
@@ -16,8 +17,28 @@
 
     <script type="module">
         import { db, auth } from '../shared/firebase-config.js';
-        import { ref, onValue, update, off, set } from 'firebase/database'; // Added set
-        import { onAuthStateChanged, signOut } from 'firebase/auth'; // Added signOut
+        import { ref, onValue, update, off, set } from 'firebase/database';
+        import { onAuthStateChanged, signOut } from 'firebase/auth';
+
+        // Emoji replacement function for woobiecore aesthetic
+        function replaceEmojiWithMonochrome(text) {
+            return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+                return `<span class="woobie-emoji">${match}</span>`;
+            });
+        }
+
+        // Apply emoji replacement to page elements
+        document.addEventListener('DOMContentLoaded', () => {
+            // Process title
+            const title = document.querySelector('h1');
+            title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+            
+            // Process logout button when it becomes visible
+            const logoutBtn = document.getElementById('logout-button');
+            if (logoutBtn) {
+                logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+            }
+        });
 
         const statusMessageEl = document.getElementById('statusMessage');
         const matchIdDisplayEl = document.getElementById('matchIdDisplay');
@@ -40,18 +61,15 @@
         if (logoutButton) {
             logoutButton.onclick = async () => {
                 cleanupListeners(); 
-                const uidToClean = currentUserId; // Capture currentUserId before it might be nulled by signOut
+                const uidToClean = currentUserId;
 
                 if (uidToClean) {
                     try {
-                        // Attempt to remove user from queue
                         await set(ref(db, `/queue/${uidToClean}`), null);
                         console.log(`User ${uidToClean} removed from queue due to logout/cancel.`);
-                        // Reset their currentMatch status
                         await update(ref(db, `users/${uidToClean}/currentMatch`), {
                             stage: 'name-picker', 
                             matchID: null,
-                            // username: localStorage.getItem('woobieUsername') || "" // Keep username or clear it based on desired flow
                         });
                         console.log(`User ${uidToClean} currentMatch stage reset.`);
                     } catch (error) {
@@ -69,7 +87,6 @@
                 window.location.href = '/auth/login.html'; 
             };
         }
-
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -112,8 +129,6 @@
                         const stageFromDB = currentMatchData.stage;
                         const finalMatchIDFromDB = currentMatchData.matchID;
 
-                        // The Cloud Function (advancedMatchmaker) should set the stage to "bio"
-                        // after a successful match.
                         if (stageFromDB === "bio" || stageFromDB.startsWith("tier") || stageFromDB === "chatroom") {
                             console.log(`Match confirmed! Stage updated to '${stageFromDB}'. Final Match ID: ${finalMatchIDFromDB}`);
                             
@@ -134,7 +149,7 @@
                             if (matchIdDisplayEl) matchIdDisplayEl.textContent = `${finalMatchIDFromDB} (MATCHED!)`;
                             if (statusMessageEl) statusMessageEl.textContent = `Match found! Proceeding to ${stageFromDB}...`;
                             
-                            let nextPage = '/bio/index.html'; // Default if logic below doesn't set it
+                            let nextPage = '/bio/index.html';
                             if (stageFromDB === 'bio') {
                                 nextPage = '/bio/index.html';
                             } else if (stageFromDB === 'tier1a') {
@@ -181,7 +196,6 @@
                 setTimeout(() => { window.location.href = '/auth/login.html'; }, 2000);
             }
         });
-    
     </script>
 </body>
 </html>

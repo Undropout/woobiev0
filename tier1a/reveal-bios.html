@@ -15,17 +15,25 @@
       <p>Loading bios...</p>
     </div>
 
-    <button class="woobie-button" id="continue-btn" style="display:none;">➡️ Continue to Tier 1b</button>
+    <button class="woobie-button" id="continue-btn" style="display:none;"><span class="woobie-emoji">→</span> Continue to Tier 1b</button>
   </div>
 
   <script type="module">
     import { db, auth } from '../shared/firebase-config.js';
-    import { ref, get, update, onValue } from 'firebase/database'; // Added update and onValue
+    import { ref, get, update, onValue } from 'firebase/database';
     import { onAuthStateChanged } from 'firebase/auth';
 
     const biosDiv = document.getElementById('bios');
     const continueBtn = document.getElementById('continue-btn');
-    let matchID; // Will be set in onAuthStateChanged
+    let matchID;
+
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      // Wrap emoji in spans with monochrome styling
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
 
     async function renderBios(currentUserId, localWoobieUsername) {
       try {
@@ -35,12 +43,11 @@
 
         if (!allBiosData || Object.keys(allBiosData).length < 2) {
           biosDiv.innerHTML = '<p>Waiting for your match to submit their bio...</p>';
-          // Set up a listener if data isn't complete yet
           const unsubscribe = onValue(allBiosRef, (snapshot) => {
               const updatedBios = snapshot.val();
               if (updatedBios && Object.keys(updatedBios).length >= 2) {
-                  unsubscribe(); // Stop listening once data is sufficient
-                  renderBios(currentUserId, localWoobieUsername); // Re-call renderBios
+                  unsubscribe();
+                  renderBios(currentUserId, localWoobieUsername);
               }
           }, (error) => {
               console.error("Error listening to bios:", error);
@@ -53,7 +60,6 @@
 
         if (!partnerUID || !allBiosData[currentUserId] || !allBiosData[partnerUID]) {
             biosDiv.innerHTML = '<p>Error: Could not retrieve complete bio information for both users. Waiting for updates...</p>';
-             // Set up a listener if data isn't complete yet (again, for robustness)
             const unsubscribeOnError = onValue(allBiosRef, (snapshot) => {
                 const updatedBios = snapshot.val();
                 if (updatedBios && Object.keys(updatedBios).length >= 2 && updatedBios[currentUserId] && updatedBios[Object.keys(updatedBios).find(uidKey => uidKey !== currentUserId)]) {
@@ -67,7 +73,7 @@
         const [myProfileSnap, theirProfileSnap, usersNodeSnap] = await Promise.all([
           get(ref(db, `matches/${matchID}/profiles/${currentUserId}`)),
           get(ref(db, `matches/${matchID}/profiles/${partnerUID}`)),
-          get(ref(db, `matches/${matchID}/users`)) // To get display names
+          get(ref(db, `matches/${matchID}/users`))
         ]);
 
         const myProfileData = myProfileSnap.val() || {};
@@ -80,28 +86,47 @@
         const formatList = arr =>
           Array.isArray(arr) && arr.length
             ? `${arr.map(item => `<li>${item}</li>`).join('')}`
-            : '<li><i>None listed</i></li>'; // Return a list item
+            : '<li><i>None listed</i></li>';
 
+        // Apply emoji replacement to all content before rendering
+        const processedPartnerBio = replaceEmojiWithMonochrome(allBiosData[partnerUID]);
+        const processedMyBio = replaceEmojiWithMonochrome(allBiosData[currentUserId]);
+        const processedPartnerName = replaceEmojiWithMonochrome(partnerDisplayName);
+        const processedMyName = replaceEmojiWithMonochrome(myDisplayName);
+        
         biosDiv.innerHTML = `
           <div style="border:1px solid #33ff33; padding:1rem; margin-bottom:1rem;">
-            <h2>${partnerDisplayName}'s Bio:</h2>
-            <p>${allBiosData[partnerUID]}</p>
-            <h4>🎯 Interests:</h4>
-            <ul>${formatList(theirProfileData.interests)}</ul>
-            <h4>❌ Dealbreakers:</h4>
-            <ul>${formatList(theirProfileData.dealbreakers)}</ul>
+            <h2>${processedPartnerName}'s Bio:</h2>
+            <p>${processedPartnerBio}</p>
+            <h4>🎯 Interests: 🎯</h4>
+            <ul style="list-style: none; padding: 0; text-align: center;">${formatList(theirProfileData.interests)}</ul>
+            <h4>❌ Dealbreakers: ❌</h4>
+            <ul style="list-style: none; padding: 0; text-align: center;">${formatList(theirProfileData.dealbreakers)}</ul>
           </div>
           <div style="border:1px solid #999999; padding:1rem;">
-            <h2>${myDisplayName}'s Bio:</h2>
-            <p>${allBiosData[currentUserId]}</p>
-            <h4>🎯 Interests:</h4>
-            <ul>${formatList(myProfileData.interests)}</ul>
-            <h4>❌ Dealbreakers:</h4>
-            <ul>${formatList(myProfileData.dealbreakers)}</ul>
+            <h2>${processedMyName}'s Bio:</h2>
+            <p>${processedMyBio}</p>
+            <h4>🎯 Interests: 🎯</h4>
+            <ul style="list-style: none; padding: 0; text-align: center;">${formatList(myProfileData.interests)}</ul>
+            <h4>❌ Dealbreakers: ❌</h4>
+            <ul style="list-style: none; padding: 0; text-align: center;">${formatList(myProfileData.dealbreakers)}</ul>
           </div>
         `;
 
         continueBtn.style.display = 'block';
+        
+        // Apply emoji replacement to header and button elements after a short delay to ensure font loads
+        setTimeout(() => {
+          document.querySelector('h1').innerHTML = replaceEmojiWithMonochrome(document.querySelector('h1').textContent);
+          
+          // Manually process the button since it has ASCII arrow, not Unicode emoji
+          continueBtn.innerHTML = `<span class="woobie-emoji">→</span> Continue to Tier 1b`;
+          
+          // Apply emoji replacement to the interest/dealbreaker headers
+          document.querySelectorAll('h4').forEach(header => {
+            header.innerHTML = replaceEmojiWithMonochrome(header.textContent);
+          });
+        }, 100);
       } catch (err) {
         console.error("Failed to load bios or profiles:", err);
         biosDiv.innerHTML = '<p style="color:#ff6666;">Failed to load bio information. Please try again later.</p>';
@@ -118,7 +143,7 @@
       
       const currentUserIdFromAuth = user.uid;
       let localWoobieUsernameFromLS = localStorage.getItem('woobieUsername');
-      matchID = localStorage.getItem('woobieMatchID'); // Set module-scoped matchID
+      matchID = localStorage.getItem('woobieMatchID');
 
       if (!matchID) {
         biosDiv.innerHTML = '<p style="color:#ff6666;">Missing Match ID. Please restart the process.</p>';
@@ -133,11 +158,11 @@
            const userCurrentMatchData = userCurrentMatchSnap.val();
            if (userCurrentMatchData && userCurrentMatchData.username) {
               localWoobieUsernameFromLS = userCurrentMatchData.username;
-              localStorage.setItem('woobieUsername', localWoobieUsernameFromLS); // Repopulate localStorage
+              localStorage.setItem('woobieUsername', localWoobieUsernameFromLS);
            } else {
               biosDiv.innerHTML = '<p style="color:#ff6666;">Missing Woobie name. Please restart by picking a name.</p>';
               setTimeout(() => window.location.href = '/name-picker/index.html', 2500);
-              return; // Stop further execution
+              return;
            }
          } catch (err) {
             console.error("Error fetching Woobie name from profile:", err);
@@ -154,21 +179,6 @@
     });
 
     continueBtn.onclick = async () => {
-      // Optionally, update stage to 'tier1b' here before redirecting,
-      // or let tier1b/index.html handle setting its own stage on load.
-      // For consistency, it's often good for the loading page to set its active stage.
-      // However, if you want to ensure it's set before navigation:
-      /*
-      const currentUser = auth.currentUser;
-      if (currentUser && matchID) {
-        const userMatchProgressRef = ref(db, `users/${currentUser.uid}/currentMatch`);
-        try {
-          await update(userMatchProgressRef, { stage: 'tier1b' });
-        } catch (error) {
-          console.error("Error updating stage before redirecting to tier1b:", error);
-        }
-      }
-      */
       window.location.href = '/tier1b/index.html';
     };
   </script>

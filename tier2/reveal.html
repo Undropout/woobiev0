@@ -10,7 +10,7 @@
   <div class="container">
     <h1>🏱 See What Your Match Shared</h1>
     <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
-    <p>You both completed Tier 2! Here’s what your match chose to share with you:</p>
+    <p>You both completed Tier 2! Here's what your match chose to share with you:</p>
 
     <div id="reward-box">
       <p>Loading reward...</p>
@@ -20,7 +20,7 @@
       <h2>Would you like to continue to Tier 3?</h2>
       <button class="woobie-button" id="vote-yes">👍 Yes</button>
       <button class="woobie-button" id="vote-no">👎 No</button>
-      <p id="vote-waiting" style="display:none;">Waiting for your match’s vote...</p>
+      <p id="vote-waiting" style="display:none;">Waiting for your match's vote...</p>
     </div>
   </div>
 
@@ -29,6 +29,30 @@
     import { ref, get, set, update, onValue, off } from 'firebase/database';
     import { onAuthStateChanged, signOut } from 'firebase/auth';
     import '../shared/logout.js';
+
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process main title
+      const title = document.querySelector('h1');
+      title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+      
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      
+      // Process vote buttons
+      const voteYesBtn = document.getElementById('vote-yes');
+      const voteNoBtn = document.getElementById('vote-no');
+      voteYesBtn.innerHTML = replaceEmojiWithMonochrome(voteYesBtn.textContent);
+      voteNoBtn.innerHTML = replaceEmojiWithMonochrome(voteNoBtn.textContent);
+    });
 
     const logoutBtn = document.getElementById('logout-button');
     logoutBtn.onclick = async () => {
@@ -44,7 +68,6 @@
       window.location.href = '/index.html';
     };
 
-    const username = localStorage.getItem('woobieUsername');
     const matchID = localStorage.getItem('woobieMatchID');
 
     const rewardBox = document.getElementById('reward-box');
@@ -53,9 +76,8 @@
     const voteSection = document.getElementById('vote-section');
     const voteWaiting = document.getElementById('vote-waiting');
 
-    const rewardRef = ref(db, `matches/${matchID}/tier2Rewards`);
-    const voteRef = ref(db, `matches/${matchID}/tier2Votes/${username}`);
-    const allVotesRef = ref(db, `matches/${matchID}/tier2Votes`);
+    let currentUserUID = null;
+    let currentUsername = null;
 
     function renderReward(reward) {
       let html = '';
@@ -68,37 +90,45 @@
       if (reward.audioURL) {
         html += `<h3>🔊 Voice Message</h3><audio controls src="${reward.audioURL}"></audio>`;
       }
-      rewardBox.innerHTML = html || '<p>Your match sent an empty reward.</p>';
+      
+      // Apply emoji replacement to the dynamically generated content
+      const processedHTML = replaceEmojiWithMonochrome(html);
+      rewardBox.innerHTML = processedHTML || '<p>Your match sent an empty reward.</p>';
       voteSection.style.display = 'block';
     }
 
     async function loadReward() {
+      if (!currentUserUID) return;
+      
       try {
+        const rewardRef = ref(db, `matches/${matchID}/tier2Rewards`);
         const snap = await get(rewardRef);
         const data = snap.val();
-        const partner = data ? Object.keys(data).find(k => k !== username) : null;
-        const reward = partner ? data[partner] : null;
+        
+        // Find partner's UID (not username)
+        const partnerUID = data ? Object.keys(data).find(k => k !== currentUserUID) : null;
+        const reward = partnerUID ? data[partnerUID] : null;
 
-        if (partner && reward) {
+        if (partnerUID && reward) {
           renderReward(reward);
         } else {
           rewardBox.innerHTML = '<p>Your match has not submitted a reward yet. Waiting...</p>';
+          // Set up listener for when partner submits their reward
+          const rewardListener = onValue(rewardRef, snap => {
+            const data = snap.val();
+            const partnerUID = data ? Object.keys(data).find(k => k !== currentUserUID) : null;
+            const reward = partnerUID ? data[partnerUID] : null;
+            if (partnerUID && reward) {
+              renderReward(reward);
+              off(rewardRef, rewardListener); // Remove listener once reward is loaded
+            }
+          });
         }
       } catch (err) {
         rewardBox.innerHTML = '<p style="color:#ff6666;">Failed to load reward.</p>';
-        console.error(err);
+        console.error('Error loading reward:', err);
       }
     }
-
-    onValue(rewardRef, snap => {
-      const data = snap.val();
-      const partner = data ? Object.keys(data).find(k => k !== username) : null;
-      const reward = partner ? data[partner] : null;
-      if (partner && reward) {
-        renderReward(reward);
-        off(rewardRef);
-      }
-    });
 
     let listenerAttached = false;
     function waitForVotes() {
@@ -108,34 +138,58 @@
 
       if (!listenerAttached) {
         listenerAttached = true;
-        onValue(allVotesRef, snap => {
+        const allVotesRef = ref(db, `matches/${matchID}/tier2Votes`);
+        const voteListener = onValue(allVotesRef, snap => {
           const votes = snap.val();
           if (!votes || Object.keys(votes).length < 2) return;
           const bothYes = Object.values(votes).every(v => v === true);
-          off(allVotesRef);
+          off(allVotesRef, voteListener);
           window.location.href = bothYes ? '/tier3/index.html' : '/goodbye.html';
         });
       }
     }
 
-    voteYesBtn.onclick = () => {
-      set(voteRef, true).then(waitForVotes);
+    voteYesBtn.onclick = async () => {
+      if (!currentUserUID) return;
+      try {
+        const voteRef = ref(db, `matches/${matchID}/tier2Votes/${currentUserUID}`);
+        await set(voteRef, true);
+        waitForVotes();
+      } catch (err) {
+        console.error('Error voting:', err);
+        alert('Failed to submit vote. Please try again.');
+      }
     };
 
-    voteNoBtn.onclick = () => {
+    voteNoBtn.onclick = async () => {
       const confirmEnd = prompt("If you're sure you want to end the match, type 'Goodbye' to confirm.");
       if (confirmEnd?.trim().toLowerCase() === 'goodbye') {
-        set(voteRef, false).then(waitForVotes);
+        if (!currentUserUID) return;
+        try {
+          const voteRef = ref(db, `matches/${matchID}/tier2Votes/${currentUserUID}`);
+          await set(voteRef, false);
+          waitForVotes();
+        } catch (err) {
+          console.error('Error voting:', err);
+          alert('Failed to submit vote. Please try again.');
+        }
       }
     };
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
+        currentUserUID = user.uid;
+        currentUsername = localStorage.getItem('woobieUsername');
+        
+        // Update user's current stage
         await update(ref(db, `users/${user.uid}/currentMatch`), { stage: 'tier2-reveal' });
+        
+        // Load reward now that we have the user UID
+        loadReward();
+      } else {
+        window.location.href = '/auth/login.html';
       }
     });
-
-    loadReward();
   </script>
 </body>
 </html>

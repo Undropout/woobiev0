@@ -1,5 +1,5 @@
-// name-picker/name-generator.js
-import { db, auth } from '../shared/firebase-config.js'; // Using shared Firebase config
+// name-picker/name-generator.js - FIXED: No emoji color override
+import { db, auth } from '../shared/firebase-config.js';
 import { ref, get, update } from 'firebase/database';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -13,31 +13,29 @@ import {
 
 let currentUserId = null;
 
+// REMOVED: simpleEmojiGlow function - let CSS handle emoji styling
+
 // Check Auth State
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUserId = user.uid;
     console.log("User is logged in on name-picker:", currentUserId);
 
-    // Check if user already has a WoobieName and is past this initial name-picking stage
     try {
       const userProfileSnap = await get(ref(db, `users/${currentUserId}`));
       if (userProfileSnap.exists()) {
         const userData = userProfileSnap.val();
-        // If they have a Woobie name AND their stage is beyond 'name-picker' or 'collect_preferences'
-        // they should be routed by resume.html
         if (userData.username && userData.stage &&
             userData.stage !== 'name-picker' &&
-            userData.stage !== 'collect_preferences' // Assuming 'collect_preferences' is next
+            userData.stage !== 'collect_preferences'
         ) {
           console.log(`User ${currentUserId} has existing Woobie name and is past name-picking (stage: ${userData.stage}). Redirecting to resume...`);
           window.location.href = '/resume.html';
-          return; // Prevent further execution on this page
+          return;
         }
       }
     } catch (error) {
       console.error("Error checking existing user stage in name-picker:", error);
-      // Proceed, resume.html might handle it if there's an issue
     }
 
     if (document.getElementById('confirm')) {
@@ -52,7 +50,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// --- UI setup code (from your provided version, with minor null checks) ---
+// UI setup code
 const modeButtons = document.querySelectorAll('[data-mode]');
 const nameOptions = document.getElementById('name-options');
 const selectedNameP = document.getElementById('selected-name');
@@ -64,8 +62,6 @@ showSavedBtn.textContent = '📜 Show Saved Options';
 showSavedBtn.className = 'woobie-button';
 if (nameOptions && nameOptions.parentElement) {
     nameOptions.parentElement.appendChild(showSavedBtn);
-} else {
-    console.warn("name-options parent element not found for showSavedBtn.");
 }
 
 const rollsLeft = document.createElement('div');
@@ -74,8 +70,6 @@ rollsLeft.style.color = '#33ff33';
 rollsLeft.id = 'roll-counter';
 if (nameOptions && nameOptions.parentElement) {
     nameOptions.parentElement.insertBefore(rollsLeft, nameOptions);
-} else {
-    console.warn("name-options parent element not found for rollsLeft.");
 }
 
 let currentMode = localStorage.getItem('woobieModePref') || 'normal';
@@ -88,7 +82,6 @@ let cooldown = false;
 
 if (confirmButton) confirmButton.disabled = true;
 if (rerollBtn) rerollBtn.disabled = true;
-
 
 function updateStateStorage() {
   localStorage.setItem('woobieSavedSets', JSON.stringify(savedSets));
@@ -133,7 +126,7 @@ function generateNameSet() {
       animalsToUse = baseAnimals.map((a) => cosmicPrefixes[Math.floor(Math.random() * cosmicPrefixes.length)] + a);
       animalEmojisToUse = baseAnimalEmojis.map((e) => cosmicPrefixEmojis[Math.floor(Math.random() * cosmicPrefixEmojis.length)] + e);
       break;
-    default: // normal mode
+    default:
       adjectivesToUse = baseAdjectives;
       colorsToUse = baseColors; colorHexToUse = baseColorHex;
       animalsToUse = baseAnimals; animalEmojisToUse = baseAnimalEmojis;
@@ -141,7 +134,6 @@ function generateNameSet() {
 
   const names = [];
   const usedLabels = new Set();
-  // Add a check to prevent infinite loop if all combinations are exhausted (unlikely with these parts)
   let attemptLimit = 100; 
   while (names.length < 3 && attemptLimit > 0) {
     const adj = adjectivesToUse[Math.floor(Math.random() * adjectivesToUse.length)];
@@ -178,9 +170,19 @@ function renderNames(nameSetToRender = null, preserveModeOnClick = false) {
     const appliedMode = preserveModeOnClick ? nameObj.mode : currentMode;
     btn.className = `woobie-button name-button woobie-${appliedMode}`;
     if (appliedMode === 'cosmic') btn.classList.add('cosmic-pulse');
+    
+    // FIXED: Just set raw HTML - let CSS and HTML script handle emoji styling
     btn.innerHTML = `<strong>${nameObj.label} ${nameObj.emoji}</strong>`;
-    btn.style.backgroundColor = nameObj.bg;
-    btn.style.color = nameObj.fg;
+    
+    // Apply color styling for text, but DON'T override emoji colors
+    if (appliedMode === 'normal') {
+      btn.style.backgroundColor = nameObj.bg;
+      btn.style.color = nameObj.fg;
+    } else {
+      if (nameObj.bg !== '#000000') {
+        btn.style.backgroundColor = nameObj.bg;
+      }
+    }
 
     if (selected && selected.label === nameObj.label && selected.emoji === nameObj.emoji) {
         btn.classList.add('selected');
@@ -189,6 +191,7 @@ function renderNames(nameSetToRender = null, preserveModeOnClick = false) {
     btn.onclick = () => {
       selected = nameObj;
       if (selectedNameP) {
+        // FIXED: Just set raw HTML here too
         selectedNameP.innerHTML = `You picked: <strong>${nameObj.label} ${nameObj.emoji}</strong>`;
         selectedNameP.className = `woobie-${appliedMode}`;
       }
@@ -239,8 +242,20 @@ if (showSavedBtn) {
                     const btn = document.createElement('button');
                     btn.className = `woobie-button name-button woobie-${nameObj.mode}`;
                     if (nameObj.mode === 'cosmic') btn.classList.add('cosmic-pulse');
+                    
+                    // FIXED: Raw HTML, no color override
                     btn.innerHTML = `<strong>${nameObj.label} ${nameObj.emoji}</strong>`;
-                    btn.style.backgroundColor = nameObj.bg; btn.style.color = nameObj.fg; btn.style.margin = '0.25rem';
+                    
+                    if (nameObj.mode === 'normal') {
+                      btn.style.backgroundColor = nameObj.bg;
+                      btn.style.color = nameObj.fg;
+                    } else {
+                      if (nameObj.bg !== '#000000') {
+                        btn.style.backgroundColor = nameObj.bg;
+                      }
+                    }
+                    
+                    btn.style.margin = '0.25rem';
                     if (selected && selected.label === nameObj.label && selected.emoji === nameObj.emoji) {
                         btn.classList.add('selected');
                     }
@@ -267,10 +282,12 @@ if (showSavedBtn) {
                 modalSetsContainer.appendChild(group);
             });
         }
+        
         const closeButton = document.getElementById('close-saved-modal');
         if (closeButton) {
             closeButton.onclick = () => document.body.removeChild(modal);
         }
+        
         modal.focus();
         modal.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -307,10 +324,10 @@ if (modeButtons) {
 }
 
 // Initial name generation and state update
-if (document.getElementById('name-options')) { // Ensure nameOptions exists
+if (document.getElementById('name-options')) {
     if (savedSets.length === 0) {
         const initialSet = generateNameSet();
-        if (initialSet.length > 0) { // Only add if names were generated
+        if (initialSet.length > 0) {
             savedSets.unshift(initialSet);
             updateStateStorage();
             renderNames(initialSet);
@@ -327,8 +344,7 @@ if (document.getElementById('name-options')) { // Ensure nameOptions exists
     }
 }
 
-
-// --- CONFIRM BUTTON LOGIC (NEW SIMPLIFIED ROLE) ---
+// Confirm button logic
 if (confirmButton) {
   confirmButton.onclick = async () => {
     if (!selected) {
@@ -343,43 +359,32 @@ if (confirmButton) {
 
     const woobieName = `${selected.label} ${selected.emoji}`;
 
-    // 1. Save chosen Woobie name and essential display details to localStorage
-    // These will be picked up by the next page (interests-dealbreakers.html) to help build the queue entry.
-    localStorage.setItem('woobieUsername', woobieName); // This is the Woobie display name
+    localStorage.setItem('woobieUsername', woobieName);
     localStorage.setItem('woobieEmoji', selected.emoji);
     localStorage.setItem('woobieMode', selected.mode);
-    localStorage.setItem('woobieUID', currentUserId); // Actual Firebase UID
+    localStorage.setItem('woobieUID', currentUserId);
 
-    // 2. Clear name picker specific localStorage items used for drafting names
     localStorage.removeItem('woobieSavedSets');
     localStorage.removeItem('woobieRerollCount');
     localStorage.removeItem('woobieModePref');
 
-    // 3. Update the user's main profile in /users/{uid} with the chosen Woobie name.
-    // Also, set their stage to indicate the next step in the flow.
     const userProfileRef = ref(db, `users/${currentUserId}`);
     try {
       await update(userProfileRef, {
-        username: woobieName, // Set/update their chosen Woobie name in their main user profile
-        // Update the stage to 'collect_preferences' or directly to 'interests_dealbreakers_pending'
-        // if interests/dealbreakers page also handles gender preferences.
-        // Let's assume 'interests-dealbreakers' is the next step where ALL preferences are set before queueing.
-        stage: 'interests-dealbreakers', // This will be used by resume.html
-        currentMatch: { // Initialize or update currentMatch object
-            username: woobieName, // WoobieName specific to this matching attempt/session
-            stage: 'interests-dealbreakers', // Stage within the matching flow
-            // matchID will be set when they actually enter the queue or a match is formed.
+        username: woobieName,
+        stage: 'interests-dealbreakers',
+        currentMatch: {
+            username: woobieName,
+            stage: 'interests-dealbreakers',
         }
       });
       console.log(`User profile updated for ${currentUserId}. WoobieName: ${woobieName}. Next stage: interests-dealbreakers.`);
     } catch (error) {
       console.error("Error updating user profile with Woobie name and stage:", error);
       alert("Could not save your name choice. Please try again.");
-      return; // Stop if profile update fails
+      return;
     }
 
-    // 4. Redirect to the next page where preferences (gender, interests, dealbreakers) are collected
-    // This page will now be responsible for gathering all data and then adding the user to the queue.
     window.location.href = '/interests-dealbreakers/index.html';
   };
 }

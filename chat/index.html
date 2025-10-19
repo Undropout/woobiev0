@@ -26,7 +26,7 @@ __        __          _     _
       </div>
     </div>
     <input id="message" type="text" placeholder="Type a message...">
-    <button id="send-btn" class="woobie-button">Send</button>
+    <button id="send-btn" class="woobie-button">Send <span class="woobie-emoji">→</span></button>
 
     <div id="emoji-bar">
       <button onclick="insertEmote('👋')">wave</button>
@@ -36,8 +36,12 @@ __        __          _     _
       <button onclick="insertEmote('🤗🫂')">hug</button>
     </div>
 
-    <label for="image-upload">Upload an image</label>
-    <input type="file" id="image-upload" accept="image/*">
+    <div class="woobie-upload-section">
+      <label for="image-upload" class="woobie-button woobie-upload-label">
+        📷 Upload Image
+      </label>
+      <input type="file" id="image-upload" accept="image/*" style="display: none;">
+    </div>
   </div>
 
   <div id="scanlines" aria-hidden="true"></div>
@@ -71,7 +75,7 @@ __        __          _     _
 
     <div style="display:flex; justify-content:space-between;">
       <button id="chat-cancel-upload" class="close-adjust" style="background:#222; color:#ff3333; padding:0.5rem 1rem; border:1px solid #ff3333; cursor:pointer;">Cancel</button>
-      <button id="chat-send-upload" style="background:#000; color:#33ff33; padding:0.5rem 1rem; border:1px solid #33ff33; cursor:pointer;">Send Image ➡️</button>
+      <button id="chat-send-upload" style="background:#000; color:#33ff33; padding:0.5rem 1rem; border:1px solid #33ff33; cursor:pointer;">Send Image <span class="woobie-emoji">→</span></button>
     </div>
   </div>
 
@@ -89,9 +93,69 @@ __        __          _     _
     import { signOut, onAuthStateChanged } from 'firebase/auth';
     import { ref, update } from 'firebase/database';
 
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to static page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      if (logoutBtn) {
+        logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      }
+      
+      // Process history button
+      const historyBtn = document.getElementById('history-btn');
+      if (historyBtn) {
+        historyBtn.innerHTML = replaceEmojiWithMonochrome(historyBtn.textContent);
+      }
+      
+      // Process send button
+      const sendBtn = document.getElementById('send-btn');
+      if (sendBtn) {
+        sendBtn.innerHTML = replaceEmojiWithMonochrome(sendBtn.textContent);
+      }
+      
+      // Process upload label
+      const uploadLabel = document.querySelector('.woobie-upload-label');
+      if (uploadLabel) {
+        uploadLabel.innerHTML = replaceEmojiWithMonochrome(uploadLabel.textContent);
+      }
+      
+      // Process image adjustment modal title
+      const modalTitle = document.querySelector('#image-adjust-modal h2');
+      if (modalTitle) {
+        modalTitle.innerHTML = replaceEmojiWithMonochrome(modalTitle.textContent);
+      }
+      
+      // Process send upload button
+      const sendUploadBtn = document.getElementById('chat-send-upload');
+      if (sendUploadBtn) {
+        sendUploadBtn.innerHTML = replaceEmojiWithMonochrome(sendUploadBtn.textContent);
+      }
+      
+      // Process emoji bar buttons
+      const emojiButtons = document.querySelectorAll('#emoji-bar button');
+      emojiButtons.forEach(btn => {
+        const originalText = btn.getAttribute('onclick');
+        if (originalText) {
+          // Extract emoji from onclick attribute
+          const match = originalText.match(/insertEmote\('([^']+)'\)/);
+          if (match) {
+            const emoji = match[1];
+            btn.innerHTML = replaceEmojiWithMonochrome(emoji);
+          }
+        }
+      });
+    });
+
     const logoutBtn = document.getElementById('logout-button');
     logoutBtn.onclick = async () => {
-      const confirmLogout = confirm("Are you sure you want to log out? You’ll lose your place unless you're logged in.");
+      const confirmLogout = confirm("Are you sure you want to log out? You'll lose your place unless you're logged in.");
       if (!confirmLogout) return;
 
       try {

@@ -21,7 +21,7 @@
 
     <div id="completion-message" style="display:none;">
       <h2>Waiting for your match to finish...</h2>
-      <p>You’ll exchange answers and unlock your reward once both of you complete Tier 2.</p>
+      <p>You'll exchange answers and unlock your reward once both of you complete Tier 2.</p>
     </div>
   </div>
 
@@ -30,6 +30,24 @@
     import { ref, update, get } from 'firebase/database';
     import { onAuthStateChanged, signOut } from 'firebase/auth';
     import '../shared/logout.js';
+
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process title
+      const title = document.querySelector('h1');
+      title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+      
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+    });
 
     const logoutBtn = document.getElementById('logout-button');
     logoutBtn.onclick = async () => {
@@ -73,11 +91,11 @@
 
     const tierQuestions = {
       tier1a: [
-        "What’s something you're proud of recently?",
+        "What's something you're proud of recently?",
         "How would a friend describe you?",
         "What does comfort look like to you?",
         "When do you feel most alive?",
-        "What’s a recent thought you can’t shake?",
+        "What's a recent thought you can't shake?",
         "How do you usually show someone you care?"
       ],
       tier1b: [
@@ -89,18 +107,18 @@
         "What's a memory you'd share to explain who you are?"
       ],
       tier2: [
-        "What’s a moment in your life that changed the way you see the world?",
+        "What's a moment in your life that changed the way you see the world?",
         "How do you show someone you care about them?",
-        "What’s something people often misunderstand about you?",
+        "What's something people often misunderstand about you?",
         "When do you feel most like yourself?",
-        "What’s one thing you wish more people asked you about?",
+        "What's one thing you wish more people asked you about?",
         "What makes you feel seen or understood?",
-        "What’s a belief you held strongly that changed over time?",
-        "What’s one thing you never get tired of talking about?",
+        "What's a belief you held strongly that changed over time?",
+        "What's one thing you never get tired of talking about?",
         "When have you felt the most brave?",
         "What do you wish someone had told you earlier in life?",
         "What kind of people do you feel safest around?",
-        "What’s something you’ve forgiven yourself for?"
+        "What's something you've forgiven yourself for?"
       ]
     };
 

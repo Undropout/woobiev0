@@ -60,11 +60,11 @@
       <h2>Friend Preferences</h2>
       <label>What gender of friend are you looking for?</label>
       <div class="multi-select-options" id="looking-for-gender-options">
-        <div><input type="checkbox" id="lf_any" value="Any" name="lookingForGender"><label for="lf_any"> Any</label></div>
-        <div><input type="checkbox" id="lf_female" value="Female" name="lookingForGender"><label for="lf_female"> Female</label></div>
-        <div><input type="checkbox" id="lf_male" value="Male" name="lookingForGender"><label for="lf_male"> Male</label></div>
-        <div><input type="checkbox" id="lf_non_binary" value="Non-binary" name="lookingForGender"><label for="lf_non_binary"> Non-binary</label></div>
-        <div><input type="checkbox" id="lf_other" value="Other" name="lookingForGender"><label for="lf_other"> Other</label></div>
+        <div><input type="checkbox" id="lf_any" value="any" name="lookingForGender"><label for="lf_any"> Any</label></div>
+        <div><input type="checkbox" id="lf_female" value="female" name="lookingForGender"><label for="lf_female"> Female</label></div>
+        <div><input type="checkbox" id="lf_male" value="male" name="lookingForGender"><label for="lf_male"> Male</label></div>
+        <div><input type="checkbox" id="lf_non_binary" value="non_binary" name="lookingForGender"><label for="lf_non_binary"> Non-binary</label></div>
+        <div><input type="checkbox" id="lf_other" value="other" name="lookingForGender"><label for="lf_other"> Other</label></div>
       </div>
     </div>
 
@@ -81,7 +81,7 @@
     </div>
 
     <p id="message" style="margin-top: 1rem; color: #ff6666;"></p>
-    <button id="continue-btn" class="woobie-button">Find My Woobie Friend! ➡️</button>
+    <button id="continue-btn" class="woobie-button">Find My Woobie Friend! →</button>
 
   </div>
 
@@ -89,7 +89,29 @@
     import { db, auth } from '../shared/firebase-config.js';
     import { ref, set, update, serverTimestamp, get } from 'firebase/database';
     import { onAuthStateChanged } from 'firebase/auth';
-    import '../shared/logout.js'; // Handles the logout button
+    import '../shared/logout.js';
+
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process title
+      const title = document.querySelector('h1');
+      title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+      
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      
+      // Process continue button - manually handle the arrow
+      const continueBtn = document.getElementById('continue-btn');
+      continueBtn.innerHTML = `Find My Woobie Friend! <span class="woobie-emoji">→</span>`;
+    });
 
     const predefinedInterests = [
       "Books", "Gaming", "Music", "Art", "Nature", "Cooking",
@@ -114,7 +136,7 @@
     let currentUserId = null;
     let localWoobieUsername = null;
     let localWoobieMode = null;
-    let localWoobieEmoji = null; // Though not directly used in queue data, good to have if needed
+    let localWoobieEmoji = null;
 
     // Populate Interests
     predefinedInterests.forEach(interest => {
@@ -165,13 +187,12 @@
         });
     }
 
-
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUserId = user.uid;
         localWoobieUsername = localStorage.getItem('woobieUsername');
         localWoobieMode = localStorage.getItem('woobieMode');
-        localWoobieEmoji = localStorage.getItem('woobieEmoji'); // Get emoji too
+        localWoobieEmoji = localStorage.getItem('woobieEmoji');
 
         if (!localWoobieUsername || !localWoobieMode || !currentUserId) {
             message.textContent = "Critical session data missing (name, mode, or UID). Please start over from name picking.";
@@ -180,17 +201,15 @@
             return;
         }
 
-        // Update user's stage in their main profile to show they are on this page
         try {
             const userMainProfileStageRef = ref(db, `users/${currentUserId}/currentMatch`);
             await update(userMainProfileStageRef, {
-                stage: 'interests-dealbreakers' // Current stage
+                stage: 'interests-dealbreakers'
             });
         } catch (stageUpdateError) {
             console.error("Error updating user stage to interests-dealbreakers:", stageUpdateError);
         }
 
-        // Pre-fill from DB if available (e.g., user is returning to this page)
         try {
             const profileDetailsSnap = await get(ref(db, `users/${currentUserId}/profileDetails`));
             if (profileDetailsSnap.exists()) {
@@ -202,7 +221,7 @@
                     lookingForCheckboxes.forEach(cb => {
                         if (prefs.lookingForGender.includes(cb.value)) {
                             cb.checked = true;
-                            if (cb.value === "Any") { // If "Any" is checked, disable others
+                            if (cb.value === "Any") {
                                 genderCheckboxes.forEach(otherCb => otherCb.disabled = true);
                             }
                         }
@@ -226,7 +245,6 @@
             console.error("Error pre-filling preferences:", fetchError);
             message.textContent = "Could not load saved preferences. Please select them again.";
         }
-
 
       } else {
         message.textContent = 'You must be logged in. Redirecting to login...';
@@ -265,9 +283,8 @@
       const dealbreakersArray = [...selectedDealbreakers];
 
       try {
-        // 1. Save all these preferences to the user's main profile details
         const userProfileDetailsRef = ref(db, `users/${currentUserId}/profileDetails`);
-        await update(userProfileDetailsRef, { // Use update to merge, not overwrite other details
+        await update(userProfileDetailsRef, {
           gender: genderIdentity,
           lookingForGender: lookingForGenderSelected,
           interests: interestsArray,
@@ -275,49 +292,39 @@
         });
         console.log("User profile details saved for UID:", currentUserId);
 
-        // 2. Prepare data for the queue
         const potentialMatchID = localStorage.getItem('woobieMatchID') || `m-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        // The potentialMatchID should be generated here if not already present from name-picker's currentMatch update.
-        // However, name-picker.js now sets a potentialMatchID in /users/{uid}/currentMatch/matchID
-        // Let's fetch that to ensure consistency.
         let finalPotentialMatchID = potentialMatchID;
         const userCurrentMatchSnap = await get(ref(db, `users/${currentUserId}/currentMatch`));
         if (userCurrentMatchSnap.exists() && userCurrentMatchSnap.val().matchID) {
             finalPotentialMatchID = userCurrentMatchSnap.val().matchID;
         } else {
-            // This case means currentMatch or its matchID wasn't set properly in name-picker
-            // We'll use the locally generated one and update currentMatch
             await update(ref(db, `users/${currentUserId}/currentMatch`), { matchID: finalPotentialMatchID });
         }
-        localStorage.setItem('woobieMatchID', finalPotentialMatchID); // Ensure localStorage is updated
-
+        localStorage.setItem('woobieMatchID', finalPotentialMatchID);
 
         const queueEntryData = {
           userUID: currentUserId,
-          woobieName: localWoobieUsername, // From localStorage, set by name-picker
+          woobieName: localWoobieUsername,
           gender: genderIdentity,
           lookingForGender: lookingForGenderSelected,
           interests: interestsArray,
           dealbreakers: dealbreakersArray,
-          mode: localWoobieMode, // From localStorage, set by name-picker
+          mode: localWoobieMode,
           timestamp: serverTimestamp(),
           potentialMatchIDForUser: finalPotentialMatchID
         };
 
-        // 3. Add user to the queue
         await set(ref(db, `/queue/${currentUserId}`), queueEntryData);
         console.log(`User ${currentUserId} (${localWoobieUsername}) added to queue with all preferences.`);
 
-        // 4. Update user's main profile stage
         const userMainProfileStageRef = ref(db, `users/${currentUserId}/currentMatch`);
         await update(userMainProfileStageRef, {
-          stage: 'waiting_in_queue', // Now they are officially waiting
-          matchID: finalPotentialMatchID // Ensure this is set
+          stage: 'waiting_in_queue',
+          matchID: finalPotentialMatchID
         });
         console.log(`User ${currentUserId} stage updated to 'waiting_in_queue'.`);
 
-        // 5. Redirect to waiting page
-        window.location.href = '/waiting.html';
+        window.location.href = '/interests-dealbreakers/waiting.html';
 
       } catch (err) {
         console.error("Failed to save preferences or enter queue:", err);

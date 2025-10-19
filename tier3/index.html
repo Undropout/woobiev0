@@ -23,7 +23,7 @@
     <!-- Waiting on match -->
     <div id="completion-message" style="display:none;">
       <h2>Waiting for your match to finish...</h2>
-      <p>You’ll exchange answers once both of you complete Tier 3.</p>
+      <p>You'll exchange answers once both of you complete Tier 3.</p>
     </div>
 
     <!-- Review section -->
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Our Story Modal -->
-    <!-- <div id="our-story-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; overflow:auto; z-index:9999; padding:2rem;">
+    <div id="our-story-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; overflow:auto; z-index:9999; padding:2rem;">
       <button id="close-story" class="woobie-button" style="position:absolute; top:1rem; right:1rem;">❌ Close</button>
       <h2 style="color:#33ff33">📚 Our Story So Far</h2>
       <div id="story-content" style="color:white;"></div>
@@ -47,7 +47,7 @@
     <div style="margin-top: 2rem; text-align:center;">
       <button id="our-story-button" class="woobie-button">📖 Our Story So Far</button>
     </div>
-  </div> -->
+  </div>
 
   <script type="module" src="./tier3.js"></script>
   <script type="module">
@@ -56,8 +56,79 @@
     import { onAuthStateChanged, signOut } from 'firebase/auth';
     import '../shared/logout.js';
 
-    const username = localStorage.getItem('woobieUsername');
-    const matchID = localStorage.getItem('woobieMatchID');
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Firefox-specific emoji fix
+    function forceFirefoxEmojiStyling() {
+      if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
+        const emojiElements = document.querySelectorAll('.woobie-emoji');
+        emojiElements.forEach(element => {
+          element.style.setProperty('font-family', 'OpenMoji, monospace', 'important');
+          element.style.setProperty('color', '#ffb000', 'important');
+          element.style.setProperty('text-shadow', '0 0 10px #ffb000, 0 0 15px #ff9900', 'important');
+          element.style.setProperty('display', 'inline-block', 'important');
+          element.style.setProperty('font-weight', 'normal', 'important');
+          element.style.setProperty('font-style', 'normal', 'important');
+        });
+      }
+    }
+
+    // Apply emoji replacement to static page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process main title
+      const title = document.querySelector('h1');
+      if (title) {
+        title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+      }
+      
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      if (logoutBtn) {
+        logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      }
+      
+      // Process vote buttons
+      const voteYesBtn = document.getElementById('vote-yes');
+      const voteNoBtn = document.getElementById('vote-no');
+      if (voteYesBtn) {
+        voteYesBtn.innerHTML = replaceEmojiWithMonochrome(voteYesBtn.textContent);
+      }
+      if (voteNoBtn) {
+        voteNoBtn.innerHTML = replaceEmojiWithMonochrome(voteNoBtn.textContent);
+      }
+      
+      // Process close story button
+      const closeBtn = document.getElementById('close-story');
+      if (closeBtn) {
+        closeBtn.innerHTML = replaceEmojiWithMonochrome(closeBtn.textContent);
+      }
+      
+      // Process story modal title
+      const storyTitle = document.querySelector('#our-story-modal h2');
+      if (storyTitle) {
+        storyTitle.innerHTML = replaceEmojiWithMonochrome(storyTitle.textContent);
+      }
+      
+      // Process story button
+      const storyBtn = document.getElementById('our-story-button');
+      if (storyBtn) {
+        storyBtn.innerHTML = replaceEmojiWithMonochrome(storyBtn.textContent);
+      }
+      
+      // Process submit button (use ASCII arrow instead of emoji)
+      const submitBtn = document.getElementById('submit-btn');
+      if (submitBtn && submitBtn.textContent === 'Next') {
+        submitBtn.innerHTML = `Next <span class="woobie-emoji">→</span>`;
+      }
+      
+      // Force Firefox emoji styling after all replacements
+      setTimeout(forceFirefoxEmojiStyling, 100);
+    });
 
     const logoutBtn = document.getElementById('logout-button');
     logoutBtn.onclick = async () => {
@@ -73,100 +144,102 @@
       window.location.href = '/resume.html';
     };
 
-    const voteYesBtn = document.getElementById('vote-yes');
-    const voteNoBtn = document.getElementById('vote-no');
-    const voteWaiting = document.getElementById('vote-waiting');
-    const voteRef = ref(db, `matches/${matchID}/tier3Votes/${username}`);
-    const allVotesRef = ref(db, `matches/${matchID}/tier3Votes`);
-
-    voteYesBtn.onclick = () => {
-      set(voteRef, true);
-      voteYesBtn.disabled = true;
-      voteNoBtn.disabled = true;
-      voteWaiting.style.display = 'block';
-      waitForVotes();
-    };
-
-    voteNoBtn.onclick = () => {
-      const confirmEnd = prompt("If you’re sure you want to end the match, type 'Goodbye' and press OK.");
-      if (confirmEnd?.trim().toLowerCase() === "goodbye") {
-        set(voteRef, false);
-        voteYesBtn.disabled = true;
-        voteNoBtn.disabled = true;
-        voteWaiting.style.display = 'block';
-        waitForVotes();
-      }
-    };
-
-    function waitForVotes() {
-      onValue(allVotesRef, snap => {
-        const votes = snap.val();
-        if (!votes || Object.keys(votes).length < 2) return;
-        off(allVotesRef);
-        const bothYes = Object.values(votes).every(v => v === true);
-        window.location.href = bothYes ? '/chat/index.html' : '/goodbye.html';
-      });
-    }
-
-    const storyBtn = document.getElementById('our-story-button');
-    const closeBtn = document.getElementById('close-story');
-    const storyContent = document.getElementById('story-content');
-    const modal = document.getElementById('our-story-modal');
-
-    storyBtn.onclick = async () => {
-      modal.style.display = 'block';
-      storyContent.innerHTML = '<p>Loading...</p>';
-
-      try {
-        const snapshot = await get(ref(db, `matches/${matchID}/tier3`));
-        const data = snapshot.val() || {};
-        const partner = Object.keys(data).find(k => k !== username);
-        if (!partner) {
-          storyContent.innerHTML = '<p>No story available.</p>';
-          return;
-        }
-
-        const mine = data[username]?.answers || [];
-        const theirs = data[partner]?.answers || [];
-
-        const questions = [
-          'What’s a belief you held strongly that changed over time?',
-          'What’s one thing you never get tired of talking about?',
-          'When have you felt the most brave?',
-          'How do you handle emotional pain?',
-          'What do you wish someone had told you earlier in life?',
-          'What kind of people do you feel safest around?',
-          'What’s something you’re currently working through internally?',
-          'When do you feel most vulnerable, and why?',
-          'What’s a memory that always brings you comfort?',
-          'If your younger self met you now, what would they say?',
-          'What’s a truth you’ve learned the hard way?',
-          'What’s something you’ve forgiven yourself for?'
-        ];
-
-        let html = '<h3>📘 Tier 3 Answers</h3>';
-        questions.forEach((q, i) => {
-          html += `
-            <details><summary><strong>${q}</strong></summary>
-            <p><strong>You:</strong> ${mine[i] || ''}</p>
-            <p><strong>Your Match:</strong> ${theirs[i] || ''}</p>
-            </details>`;
-        });
-
-        storyContent.innerHTML = html;
-      } catch (err) {
-        storyContent.innerHTML = '<p style="color:red;">Error loading story.</p>';
-        console.error(err);
-      }
-    };
-
-    closeBtn.onclick = () => {
-      modal.style.display = 'none';
-    };
-
+    // Wrap in auth state change to get current user UID
     onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        await update(ref(db, `users/${user.uid}/currentMatch`), { stage: 'tier3' });
+      if (!user) {
+        alert("You must be logged in to participate. Redirecting to login.");
+        window.location.href = '/auth/login.html';
+        return;
+      }
+
+      const currentUserId = user.uid;
+      const matchID = localStorage.getItem('woobieMatchID');
+
+      if (!matchID) {
+        alert("Missing Match ID. Please restart.");
+        window.location.href = '/name-picker/index.html';
+        return;
+      }
+
+      // Update user's current stage
+      await update(ref(db, `users/${currentUserId}/currentMatch`), { stage: 'tier3' });
+
+      // Use UID for vote references
+      const voteYesBtn = document.getElementById('vote-yes');
+      const voteNoBtn = document.getElementById('vote-no');
+      const voteWaiting = document.getElementById('vote-waiting');
+      const voteRef = ref(db, `matches/${matchID}/tier3Votes/${currentUserId}`);
+      const allVotesRef = ref(db, `matches/${matchID}/tier3Votes`);
+
+      function waitForVotes() {
+        onValue(allVotesRef, snap => {
+          const votes = snap.val();
+          if (!votes || Object.keys(votes).length < 2) return;
+          off(allVotesRef);
+          const bothYes = Object.values(votes).every(v => v === true);
+          window.location.href = bothYes ? '/chat/index.html' : '/goodbye.html';
+        });
+      }
+
+      // Story modal functionality
+      const storyBtn = document.getElementById('our-story-button');
+      const closeBtn = document.getElementById('close-story');
+      const storyContent = document.getElementById('story-content');
+      const modal = document.getElementById('our-story-modal');
+
+      if (storyBtn && modal && storyContent && closeBtn) {
+        storyBtn.onclick = async () => {
+          modal.style.display = 'block';
+          storyContent.innerHTML = '<p>Loading...</p>';
+
+          try {
+            const snapshot = await get(ref(db, `matches/${matchID}/tier3`));
+            const data = snapshot.val() || {};
+            // Find partner by UID
+            const partnerUID = Object.keys(data).find(uid => uid !== currentUserId);
+            if (!partnerUID) {
+              storyContent.innerHTML = '<p>No story available.</p>';
+              return;
+            }
+
+            const mine = data[currentUserId]?.answers || [];
+            const theirs = data[partnerUID]?.answers || [];
+
+            const questions = [
+              "What's a belief you held strongly that changed over time?",
+              "What's one thing you never get tired of talking about?",
+              "When have you felt the most brave?",
+              "How do you handle emotional pain?",
+              "What do you wish someone had told you earlier in life?",
+              "What kind of people do you feel safest around?",
+              "What's something you're currently working through internally?",
+              "When do you feel most vulnerable, and why?",
+              "What's a memory that always brings you comfort?",
+              "If your younger self met you now, what would they say?",
+              "What's a truth you've learned the hard way?",
+              "What's something you've forgiven yourself for?"
+            ];
+
+            let html = '<h3>📘 Tier 3 Answers</h3>';
+            questions.forEach((q, i) => {
+              html += `
+                <details><summary><strong>${q}</strong></summary>
+                <p><strong>You:</strong> ${mine[i] || ''}</p>
+                <p><strong>Your Match:</strong> ${theirs[i] || ''}</p>
+                </details>`;
+            });
+
+            // Apply emoji replacement to the dynamically generated content
+            storyContent.innerHTML = replaceEmojiWithMonochrome(html);
+          } catch (err) {
+            storyContent.innerHTML = '<p style="color:red;">Error loading story.</p>';
+            console.error(err);
+          }
+        };
+
+        closeBtn.onclick = () => {
+          modal.style.display = 'none';
+        };
       }
     });
   </script>

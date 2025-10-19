@@ -5,47 +5,82 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sign Up – Woobie</title>
   <link rel="stylesheet" href="../shared/style.css" />
+  <style>
+    /* Override input styling for woobiecore aesthetic */
+    input[type="email"], input[type="password"] {
+      background-color: #111111 !important;
+      border: 2px solid #33ff33 !important;
+      color: #33ff33 !important;
+    }
+    
+    input[type="email"]:focus, input[type="password"]:focus {
+      background-color: #111111 !important;
+      border: 2px solid #00ffff !important;
+      box-shadow: 0 0 5px #00ffff !important;
+    }
+    
+    /* Woobiecore cyan link */
+    a {
+      color: #00ffff !important;
+      text-decoration: none;
+    }
+    
+    a:hover {
+      color: #33ff33 !important;
+      text-shadow: 0 0 3px #33ff33;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>Create Your Woobie Account</h1>
-
     <!-- 🚪 Log out button -->
     <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
-
     <form id="signup-form">
       <label for="email">Email</label>
       <input type="email" id="email" required />
-
       <label for="password">Password</label>
       <input type="password" id="password" required />
-
       <button type="submit" class="woobie-button">Sign Up</button>
     </form>
-
     <p id="error-message" style="color:#ff4444;"></p>
     <p><a href="/auth/login.html">Already have an account? Log in here</a></p>
   </div>
-
+  
   <script type="module">
     import { auth, db } from '../shared/firebase-config.js';
     import { createUserWithEmailAndPassword } from 'firebase/auth';
     import { ref, set } from 'firebase/database';
-    import '../shared/logout.js'; // Assuming this handles the logout button if present
+    import '../shared/logout.js';
+
+    // Emoji replacement function for woobiecore aesthetic
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji replacement to page elements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Process logout button
+      const logoutBtn = document.getElementById('logout-button');
+      if (logoutBtn) {
+        logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+      }
+    });
 
     const form = document.getElementById('signup-form');
     const errorMessage = document.getElementById('error-message');
-
+    
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = form.email.value.trim();
       const password = form.password.value.trim();
-
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         const uid = user.uid;
-
+        
         // Initialize user record in /users/{uid}
         const profileRef = ref(db, `users/${uid}`);
         await set(profileRef, {
@@ -56,11 +91,11 @@
           // The 'currentMatch' object (with matchID, specific Woobie name for match, and match stage)
           // will be created/updated by name-picker.js and subsequent scripts.
         });
-
+        
         // Save email and UID to localStorage for the current session
         localStorage.setItem('woobieEmail', user.email);
         localStorage.setItem('woobieUID', uid);
-
+        
         // Redirect to session resume handler, which will then likely send to name-picker
         window.location.href = '/resume.html';
       } catch (err) {
