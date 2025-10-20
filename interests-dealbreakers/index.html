@@ -26,7 +26,7 @@
       color: #00ff00;
       font-family: inherit;
     }
-     .preference-group .multi-select-options div {
+    .preference-group .multi-select-options div {
       margin-bottom: 0.25rem;
     }
     .preference-group select {
@@ -81,8 +81,7 @@
     </div>
 
     <p id="message" style="margin-top: 1rem; color: #ff6666;"></p>
-    <button id="continue-btn" class="woobie-button">Find My Woobie Friend! →</button>
-
+    <button id="continue-btn" class="woobie-button">Find My Woobie Friend! ➡️</button>
   </div>
 
   <script type="module">
@@ -90,28 +89,6 @@
     import { ref, set, update, serverTimestamp, get } from 'firebase/database';
     import { onAuthStateChanged } from 'firebase/auth';
     import '../shared/logout.js';
-
-    // Emoji replacement function for woobiecore aesthetic
-    function replaceEmojiWithMonochrome(text) {
-      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
-        return `<span class="woobie-emoji">${match}</span>`;
-      });
-    }
-
-    // Apply emoji replacement to page elements
-    document.addEventListener('DOMContentLoaded', () => {
-      // Process title
-      const title = document.querySelector('h1');
-      title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
-      
-      // Process logout button
-      const logoutBtn = document.getElementById('logout-button');
-      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
-      
-      // Process continue button - manually handle the arrow
-      const continueBtn = document.getElementById('continue-btn');
-      continueBtn.innerHTML = `Find My Woobie Friend! <span class="woobie-emoji">→</span>`;
-    });
 
     const predefinedInterests = [
       "Books", "Gaming", "Music", "Art", "Nature", "Cooking",
@@ -138,25 +115,17 @@
     let localWoobieMode = null;
     let localWoobieEmoji = null;
 
-    // Populate Interests
-    predefinedInterests.forEach(interest => {
-      const btn = document.createElement('button');
-      btn.textContent = interest;
-      btn.className = 'woobie-button';
-      btn.onclick = () => toggleSelect(btn, selectedInterests, 6, 'interests');
-      interestContainer.appendChild(btn);
-    });
+    // CRITICAL: Clear any existing content first to prevent duplicates
+    // This runs immediately when script loads
+    console.log('Clearing containers...');
+    interestContainer.innerHTML = '';
+    dealbreakerContainer.innerHTML = '';
+    console.log('Interest container empty:', interestContainer.children.length === 0);
+    console.log('Dealbreaker container empty:', dealbreakerContainer.children.length === 0);
 
-    // Populate Dealbreakers
-    predefinedDealbreakers.forEach(flag => {
-      const btn = document.createElement('button');
-      btn.textContent = flag;
-      btn.className = 'woobie-button';
-      btn.onclick = () => toggleSelect(btn, selectedDealbreakers, 3, 'dealbreakers');
-      dealbreakerContainer.appendChild(btn);
-    });
-
+    // Toggle selection function
     function toggleSelect(button, currentSet, max) {
+      console.log('Toggle called for:', button.textContent, 'Currently has selected:', button.classList.contains('selected'));
       const label = button.textContent;
       if (currentSet.has(label)) {
         currentSet.delete(label);
@@ -169,6 +138,24 @@
         setTimeout(() => message.textContent = '', 3000);
       }
     }
+
+    // Populate Interests
+    predefinedInterests.forEach(interest => {
+      const btn = document.createElement('button');
+      btn.textContent = interest;
+      btn.className = 'woobie-button';
+      btn.onclick = () => toggleSelect(btn, selectedInterests, 6);
+      interestContainer.appendChild(btn);
+    });
+
+    // Populate Dealbreakers
+    predefinedDealbreakers.forEach(flag => {
+      const btn = document.createElement('button');
+      btn.textContent = flag;
+      btn.className = 'woobie-button';
+      btn.onclick = () => toggleSelect(btn, selectedDealbreakers, 3);
+      dealbreakerContainer.appendChild(btn);
+    });
     
     // Handle "Any" checkbox for lookingForGender
     const anyCheckbox = document.getElementById('lf_any');
@@ -201,6 +188,7 @@
             return;
         }
 
+        // Update user's stage
         try {
             const userMainProfileStageRef = ref(db, `users/${currentUserId}/currentMatch`);
             await update(userMainProfileStageRef, {
@@ -210,6 +198,7 @@
             console.error("Error updating user stage to interests-dealbreakers:", stageUpdateError);
         }
 
+        // Pre-fill from DB if available
         try {
             const profileDetailsSnap = await get(ref(db, `users/${currentUserId}/profileDetails`));
             if (profileDetailsSnap.exists()) {
@@ -221,7 +210,7 @@
                     lookingForCheckboxes.forEach(cb => {
                         if (prefs.lookingForGender.includes(cb.value)) {
                             cb.checked = true;
-                            if (cb.value === "Any") {
+                            if (cb.value === "any") {
                                 genderCheckboxes.forEach(otherCb => otherCb.disabled = true);
                             }
                         }
@@ -267,7 +256,7 @@
       const genderIdentity = genderIdentitySelect.value;
       let lookingForGenderSelected = [];
       if (anyCheckbox && anyCheckbox.checked) {
-        lookingForGenderSelected.push("Any");
+        lookingForGenderSelected.push("any");
       } else {
         lookingForGenderOptionsDiv.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
           lookingForGenderSelected.push(cb.value);
@@ -283,6 +272,7 @@
       const dealbreakersArray = [...selectedDealbreakers];
 
       try {
+        // Save preferences to user profile
         const userProfileDetailsRef = ref(db, `users/${currentUserId}/profileDetails`);
         await update(userProfileDetailsRef, {
           gender: genderIdentity,
@@ -292,43 +282,53 @@
         });
         console.log("User profile details saved for UID:", currentUserId);
 
-        const potentialMatchID = localStorage.getItem('woobieMatchID') || `m-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        let finalPotentialMatchID = potentialMatchID;
+        // Generate or use existing matchID
+        let potentialMatchID = localStorage.getItem('woobieMatchID');
+        if (!potentialMatchID) {
+          potentialMatchID = `m-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          localStorage.setItem('woobieMatchID', potentialMatchID);
+        }
+
+        // Double-check with database
         const userCurrentMatchSnap = await get(ref(db, `users/${currentUserId}/currentMatch`));
         if (userCurrentMatchSnap.exists() && userCurrentMatchSnap.val().matchID) {
-            finalPotentialMatchID = userCurrentMatchSnap.val().matchID;
+          potentialMatchID = userCurrentMatchSnap.val().matchID;
         } else {
-            await update(ref(db, `users/${currentUserId}/currentMatch`), { matchID: finalPotentialMatchID });
+          await update(ref(db, `users/${currentUserId}/currentMatch`), { 
+            matchID: potentialMatchID 
+          });
         }
-        localStorage.setItem('woobieMatchID', finalPotentialMatchID);
+        localStorage.setItem('woobieMatchID', potentialMatchID);
 
-        const queueEntryData = {
+        // Add to queue with all necessary data
+        const queueEntryRef = ref(db, `queue/${currentUserId}`);
+        await set(queueEntryRef, {
           userUID: currentUserId,
           woobieName: localWoobieUsername,
+          mode: localWoobieMode,
+          emoji: localWoobieEmoji,
           gender: genderIdentity,
           lookingForGender: lookingForGenderSelected,
           interests: interestsArray,
           dealbreakers: dealbreakersArray,
-          mode: localWoobieMode,
-          timestamp: serverTimestamp(),
-          potentialMatchIDForUser: finalPotentialMatchID
-        };
-
-        await set(ref(db, `/queue/${currentUserId}`), queueEntryData);
-        console.log(`User ${currentUserId} (${localWoobieUsername}) added to queue with all preferences.`);
-
-        const userMainProfileStageRef = ref(db, `users/${currentUserId}/currentMatch`);
-        await update(userMainProfileStageRef, {
-          stage: 'waiting_in_queue',
-          matchID: finalPotentialMatchID
+          potentialMatchIDForUser: potentialMatchID,
+          timestamp: serverTimestamp()
         });
-        console.log(`User ${currentUserId} stage updated to 'waiting_in_queue'.`);
 
+        // Update user's currentMatch with queue status
+        const userCurrentMatchRef = ref(db, `users/${currentUserId}/currentMatch`);
+        await update(userCurrentMatchRef, {
+          stage: 'waiting_in_queue',
+          matchID: potentialMatchID,
+          username: localWoobieUsername
+        });
+
+        console.log(`User ${currentUserId} added to queue with potentialMatchID: ${potentialMatchID}`);
         window.location.href = '/interests-dealbreakers/waiting.html';
 
-      } catch (err) {
-        console.error("Failed to save preferences or enter queue:", err);
-        message.textContent = 'Something went wrong. Please try again.';
+      } catch (error) {
+        console.error("Error saving preferences and adding to queue:", error);
+        message.textContent = "Error saving your preferences. Please try again.";
       }
     };
   </script>
