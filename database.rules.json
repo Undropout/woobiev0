@@ -1,0 +1,156 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "matches": {
+      "$matchID": {
+        ".read": "auth != null && data.child('users').hasChild(auth.uid)",
+
+        "users": {
+          ".write": "auth != null && newData.hasChild(auth.uid)",
+          ".validate": "newData.hasChild(auth.uid) && (!data.exists() || (data.exists() && !data.hasChild(auth.uid)))",
+          "$uid": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 100"
+          }
+        },
+
+        "modes": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('matches/' + $matchID + '/users').hasChild($uid)",
+            ".validate": "newData.hasChildren(['mode']) && newData.child('mode').isString()"
+          }
+        },
+
+        "tier1a": {
+          "$userUID": {
+            ".read": "auth != null && (auth.uid === $userUID || root.child('matches/' + $matchID + '/tier1aVotes/' + auth.uid).val() === true)",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.hasChildren(['answers', 'woobieName']) && newData.child('woobieName').isString() && newData.child('answers').exists()"
+          }
+        },
+
+        "tier1aVotes": {
+          "$userUID": {
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.isBoolean()"
+          }
+        },
+
+        "tier1b": {
+          "$userUID": {
+            ".read": "auth != null && (auth.uid === $userUID || root.child('matches/' + $matchID + '/tier1bVotes/' + auth.uid).val() === true)",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.hasChildren(['answers', 'woobieName']) && newData.child('woobieName').isString() && newData.child('answers').exists()"
+          }
+        },
+
+        "tier1bLetters": {
+          "$userUID": {
+            ".read": "auth != null && (auth.uid === $userUID || root.child('matches/' + $matchID + '/tier1bVotes/' + auth.uid).val() === true)",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.isString()"
+          }
+        },
+
+        "tier1bVotes": {
+          "$userUID": {
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.isBoolean()"
+          }
+        },
+
+        "tier2": {
+          "$userUID": {
+            ".read": "auth != null && (auth.uid === $userUID || root.child('matches/' + $matchID + '/tier2Votes/' + auth.uid).val() === true)",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.hasChildren(['answers', 'timestamp']) && newData.child('timestamp').isNumber() && newData.child('answers').exists()"
+          }
+        },
+
+        "tier2Rewards": {
+          "$userUID": {
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.hasChildren(['timestamp'])"
+          }
+        },
+
+        "tier2Votes": {
+          "$userUID": {
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.isBoolean()"
+          }
+        },
+
+        "tier3": {
+          "$userUID": {
+            ".read": "auth != null && (auth.uid === $userUID || root.child('matches/' + $matchID + '/tier3Votes/' + auth.uid).val() === true)",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.hasChildren(['answers', 'woobieName', 'timestamp']) && newData.child('woobieName').isString() && newData.child('timestamp').isNumber() && newData.child('answers').exists()"
+          }
+        },
+
+        "tier3Votes": {
+          "$userUID": {
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.isBoolean()"
+          }
+        },
+
+        "profiles": {
+          "$userUID": {
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.hasChildren(['interests', 'dealbreakers']) && newData.child('interests').hasChildren() && newData.child('dealbreakers').exists()"
+          }
+        },
+
+        "bios": {
+          "$userUID": {
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 1000"
+          }
+        },
+
+        "meta": {
+          "$userUID": {
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
+            ".validate": "newData.hasChildren(['stage', 'joinedAt', 'woobieName'])"
+          }
+        },
+
+        "chat": {
+          ".read": "auth != null && data.parent().child('users').hasChild(auth.uid)",
+          ".write": "auth != null && data.parent().child('users').hasChild(auth.uid)",
+          "$messageId": {
+            ".validate": "newData.hasChildren(['senderUID', 'sender', 'format', 'timestamp']) && newData.child('senderUID').val() === auth.uid && newData.child('sender').isString() && newData.child('format').isString() && newData.child('timestamp').isNumber()"
+          }
+        },
+
+        "createdAt": {
+          ".write": "!data.exists() && newData.val() === now"
+        },
+
+        "$other": {
+          ".read": false,
+          ".write": false
+        }
+      }
+    },
+
+    "queue": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChild('userUID') && newData.child('userUID').val() === $uid && newData.hasChild('woobieName') && newData.hasChild('potentialMatchIDForUser') && newData.hasChild('mode') && newData.hasChild('timestamp')"
+      }
+    },
+
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
