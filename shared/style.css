@@ -498,6 +498,49 @@ td {
   padding: 1rem;
 }
 
+/* Accordion/Details Styling */
+details {
+  margin-bottom: 1rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 0.5rem;
+  background-color: #1a1a1a;
+}
+
+details summary {
+  cursor: pointer;
+  padding: 0.5rem;
+  font-weight: bold;
+  color: #ffb000;
+  list-style: none;
+  user-select: none;
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+details summary::before {
+  content: "▶ ";
+  display: inline-block;
+  transition: transform 0.2s;
+  color: #ffb000;
+}
+
+details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+details p {
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  color: #33ff33;
+}
+
+details p strong {
+  color: #33ff33;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .container {

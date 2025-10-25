@@ -23,4 +23,20 @@ dist-ssr
 *.sln
 *.sw?
 /dist
+# Environment variables
 .env
+.env.*
+.env.local
+.env.*.local
+functions/.env
+functions/.env.*
+firebase-config.js
+node_modules/
+dist/
+build/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(firebase functions:log:*)",
+      "Bash(npm run deploy:*)",
+      "Bash(cat:*)",
+      "Bash(timeout 5 firebase functions:log:*)",
+      "Bash(npm run lint:*)",
+      "Bash(node:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

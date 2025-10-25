@@ -40,6 +40,13 @@
           }
         },
 
+        "tier1aDrafts": {
+          "$userUID": {
+            ".read": "auth != null && auth.uid === $userUID",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)"
+          }
+        },
+
         "tier1b": {
           "$userUID": {
             ".read": "auth != null && (auth.uid === $userUID || root.child('matches/' + $matchID + '/tier1bVotes/' + auth.uid).val() === true)",
@@ -63,11 +70,25 @@
           }
         },
 
+        "tier1bDrafts": {
+          "$userUID": {
+            ".read": "auth != null && auth.uid === $userUID",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)"
+          }
+        },
+
         "tier2": {
           "$userUID": {
             ".read": "auth != null && (auth.uid === $userUID || root.child('matches/' + $matchID + '/tier2Votes/' + auth.uid).val() === true)",
             ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
             ".validate": "newData.hasChildren(['answers', 'timestamp']) && newData.child('timestamp').isNumber() && newData.child('answers').exists()"
+          }
+        },
+
+        "tier2Drafts": {
+          "$userUID": {
+            ".read": "auth != null && auth.uid === $userUID",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)"
           }
         },
 
@@ -97,6 +118,13 @@
           "$userUID": {
             ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)",
             ".validate": "newData.isBoolean()"
+          }
+        },
+
+        "tier3Drafts": {
+          "$userUID": {
+            ".read": "auth != null && auth.uid === $userUID",
+            ".write": "auth != null && auth.uid === $userUID && root.child('matches/' + $matchID + '/users').hasChild($userUID)"
           }
         },
 

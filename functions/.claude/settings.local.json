@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/perry/Downloads/woobie-app202505212003/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

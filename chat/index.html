@@ -169,12 +169,8 @@ __        __          _     _
       window.location.href = '/resume.html';
     };
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userRef = ref(db, `users/${user.uid}/currentMatch`);
-        await update(userRef, { stage: 'chat' });
-      }
-    });
+    // No need to update stage here - it's already set to 'chatroom' by tier3
+    // Updating it to 'chat' would break resume since there's no 'chat' mapping
   </script>
 </body>
 </html>

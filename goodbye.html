@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Match Ended - Woobie</title>
+  <link rel="stylesheet" href="./shared/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🐻 This Match Has Ended</h1>
+    <p>One or both of you decided not to continue. That's okay! Finding the right connection takes time.</p>
+
+    <div style="margin-top: 2rem; text-align: center;">
+      <p style="color:#ffb000;">Ready to try again?</p>
+      <button id="find-new-match" class="woobie-button primary" style="margin-top: 1rem;">=
+ Find a New Match</button>
+      <button id="logout-btn" class="woobie-button secondary" style="margin-top: 1rem;">Log Out</button>
+    </div>
+
+    <div id="status-msg" style="margin-top: 2rem; text-align: center; color: #33ff33;"></div>
+  </div>
+
+  <script type="module">
+    import { db, auth } from './shared/firebase-config.js';
+    import { ref, remove, update } from 'firebase/database';
+    import { onAuthStateChanged, signOut } from 'firebase/auth';
+
+    // Emoji replacement function
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply emoji styling
+    document.addEventListener('DOMContentLoaded', () => {
+      const title = document.querySelector('h1');
+      title.innerHTML = replaceEmojiWithMonochrome(title.textContent);
+
+      const findMatchBtn = document.getElementById('find-new-match');
+      findMatchBtn.innerHTML = replaceEmojiWithMonochrome(findMatchBtn.textContent);
+
+      const logoutBtn = document.getElementById('logout-btn');
+      logoutBtn.innerHTML = replaceEmojiWithMonochrome(logoutBtn.textContent);
+    });
+
+    const findNewMatchBtn = document.getElementById('find-new-match');
+    const logoutBtn = document.getElementById('logout-btn');
+    const statusMsg = document.getElementById('status-msg');
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = '/auth/login.html';
+        return;
+      }
+
+      const currentUserId = user.uid;
+
+      // Clear the old match data from user's profile
+      try {
+        await update(ref(db, `users/${currentUserId}`), {
+          currentMatch: null,
+          stage: 'interests-dealbreakers'
+        });
+
+        // Clear localStorage
+        localStorage.removeItem('woobieMatchID');
+        localStorage.removeItem('tier2Answers');
+
+        console.log('Match data cleared for user:', currentUserId);
+      } catch (err) {
+        console.error('Error clearing match data:', err);
+      }
+
+      // Find new match button handler
+      findNewMatchBtn.onclick = async () => {
+        findNewMatchBtn.disabled = true;
+        statusMsg.textContent = 'Preparing to find you a new match...';
+
+        try {
+          // Navigate back to interests/dealbreakers to re-enter queue
+          setTimeout(() => {
+            window.location.href = '/interests-dealbreakers/index.html';
+          }, 1000);
+        } catch (err) {
+          console.error('Error restarting:', err);
+          statusMsg.textContent = 'Error restarting. Please refresh the page.';
+          statusMsg.style.color = '#ff6666';
+          findNewMatchBtn.disabled = false;
+        }
+      };
+
+      // Logout button handler
+      logoutBtn.onclick = async () => {
+        try {
+          await signOut(auth);
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.href = '/index.html';
+        } catch (err) {
+          console.error('Logout error:', err);
+        }
+      };
+    });
+  </script>
+</body>
+</html>

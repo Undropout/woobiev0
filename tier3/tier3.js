@@ -1,6 +1,6 @@
 // tier3.js
 import { db, auth } from '../shared/firebase-config.js';
-import { ref, set, get, onValue, off } from 'firebase/database';
+import { ref, set, get, onValue, off, update } from 'firebase/database';
 import { onAuthStateChanged } from 'firebase/auth';
 
 // Emoji replacement function for woobiecore aesthetic
@@ -34,13 +34,23 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   const currentUserId = user.uid;
-  const matchID = localStorage.getItem('woobieMatchID');
-  const username = localStorage.getItem('woobieUsername');
+  let matchID = localStorage.getItem('woobieMatchID');
+  let username = localStorage.getItem('woobieUsername');
 
-  if (!matchID) {
-    alert("Missing Match ID. Please restart.");
-    window.location.href = '/name-picker/index.html';
-    return;
+  // Fallback to database if localStorage is empty
+  if (!matchID || !username) {
+    const { update } = await import('firebase/database');
+    const snap = await get(ref(db, `users/${currentUserId}/currentMatch`));
+    const matchData = snap.val();
+    if (!matchData || !matchData.matchID || !matchData.username) {
+      alert("No match found. Please restart.");
+      window.location.href = '/name-picker/index.html';
+      return;
+    }
+    matchID = matchData.matchID;
+    username = matchData.username;
+    localStorage.setItem('woobieMatchID', matchID);
+    localStorage.setItem('woobieUsername', username);
   }
 
   // Use UID for database references
@@ -48,10 +58,9 @@ onAuthStateChanged(auth, async (user) => {
   const allAnswersRef = ref(db, `matches/${matchID}/tier3`);
   const voteRef = ref(db, `matches/${matchID}/tier3Votes/${currentUserId}`);
   const allVotesRef = ref(db, `matches/${matchID}/tier3Votes`);
+  const draftRef = ref(db, `matches/${matchID}/tier3Drafts/${currentUserId}`);
 
-  let answers = JSON.parse(localStorage.getItem('tier3Answers') || '[]');
-  let index = answers.length;
-
+  // Get DOM elements at the top so they're available in all code paths
   const questionBlock = document.getElementById('question-block');
   const completionMessage = document.getElementById('completion-message');
   const reviewSection = document.getElementById('review-section');
@@ -59,6 +68,98 @@ onAuthStateChanged(auth, async (user) => {
   const voteYesBtn = document.getElementById('vote-yes');
   const voteNoBtn = document.getElementById('vote-no');
   const voteWaiting = document.getElementById('vote-waiting');
+
+  // Attach vote handlers at the top so they work in all code paths (including resume)
+  function waitForVotes() {
+    voteYesBtn.style.display = 'none';
+    voteNoBtn.style.display = 'none';
+    voteWaiting.style.display = 'block';
+
+    onValue(allVotesRef, snap => {
+      const votes = snap.val();
+      if (!votes || Object.keys(votes).length < 2) return;
+
+      const bothYes = Object.values(votes).every(v => v === true);
+      off(allVotesRef);
+
+      // Update BOTH stage locations before redirecting
+      const userMatchProgressRef = ref(db, `users/${currentUserId}/currentMatch`);
+      const userRef = ref(db, `users/${currentUserId}`);
+
+      if (bothYes) {
+        // Update both currentMatch/stage and top-level stage
+        Promise.all([
+          update(userMatchProgressRef, { stage: 'chatroom' }),
+          update(userRef, { stage: 'chatroom' })
+        ]).then(() => {
+          window.location.href = '/chat/index.html';
+        });
+      } else {
+        Promise.all([
+          update(userMatchProgressRef, { stage: 'goodbye-tier3' }),
+          update(userRef, { stage: 'goodbye-tier3' })
+        ]).then(() => {
+          window.location.href = '/goodbye.html';
+        });
+      }
+    });
+  }
+
+  voteYesBtn.onclick = () => {
+    set(voteRef, true).then(waitForVotes);
+  };
+
+  voteNoBtn.onclick = () => {
+    const confirmEnd = prompt("If you're sure you want to end the match, type 'Goodbye' and press OK.");
+    if (confirmEnd?.trim().toLowerCase() === "goodbye") {
+      set(voteRef, false).then(waitForVotes);
+    }
+  };
+
+  // Declare answer tracking variables at the top so they're available in all code paths
+  let answers = [];
+  let index = 0;
+
+  // Check if user has already submitted answers
+  const existingAnswersSnap = await get(answersRef);
+  if (existingAnswersSnap.exists()) {
+    // User has already answered, skip to review/vote
+    console.log("[Tier3] User has already submitted answers, checking for partner");
+    questionBlock.style.display = 'none';
+    completionMessage.style.display = 'block';
+
+    // Check if both users have answered
+    const allAnswersSnap = await get(allAnswersRef);
+    const allData = allAnswersSnap.val();
+    if (allData && Object.keys(allData).length >= 2) {
+      completionMessage.style.display = 'none';
+      showReview(allData);
+
+      // Check if user has already voted
+      const existingVoteSnap = await get(voteRef);
+      if (existingVoteSnap.exists()) {
+        console.log("[Tier3] User has already voted, showing waiting message");
+        waitForVotes();
+      }
+    } else {
+      waitForPartner();
+    }
+    return;
+  }
+
+  // Load partial answers from database
+  const draftSnap = await get(draftRef);
+  if (draftSnap.exists()) {
+    const draftData = draftSnap.val();
+    answers = draftData.answers || [];
+    index = draftData.currentIndex || 0;
+    console.log('[Tier3] Loaded partial draft from database:', {
+      answerCount: answers.length,
+      currentIndex: index
+    });
+  } else {
+    console.log('[Tier3] No draft found in database, starting fresh');
+  }
 
   // Inject fallback waiting message if needed
   let waitingMsg = document.getElementById('waiting-message');
@@ -71,6 +172,24 @@ onAuthStateChanged(auth, async (user) => {
     waitingMsg.style.marginTop = '2rem';
     waitingMsg.style.display = 'none';
     questionBlock.parentNode.appendChild(waitingMsg);
+  }
+
+  function saveProgress() {
+    const draft = {
+      answers: answers,
+      currentIndex: index,
+      lastSaved: Date.now()
+    };
+    set(draftRef, draft)
+      .then(() => {
+        console.log('[Tier3] Saved draft to database:', {
+          answerCount: answers.length,
+          currentIndex: index
+        });
+      })
+      .catch(err => {
+        console.error('[Tier3] Error saving draft to database:', err);
+      });
   }
 
   function showQuestion() {
@@ -90,19 +209,23 @@ onAuthStateChanged(auth, async (user) => {
     const val = document.getElementById('answer').value.trim();
     if (!val) return;
     answers[index] = val;
-    localStorage.setItem('tier3Answers', JSON.stringify(answers));
+    saveProgress();
     index++;
     showQuestion();
   };
 
-  function submitAnswers() {
+  async function submitAnswers() {
     // Include username for display purposes but use UID for database key
-    set(answersRef, { 
-      answers, 
+    await set(answersRef, {
+      answers,
       timestamp: Date.now(),
-      woobieName: username 
+      woobieName: username
     });
-    
+
+    // Clear the draft from database since it's now fully submitted
+    await set(draftRef, null);
+    console.log("Tier3 draft cleared from database");
+
     onValue(allAnswersRef, snap => {
       const all = snap.val();
       if (all && Object.keys(all).length >= 2) {
@@ -117,16 +240,37 @@ onAuthStateChanged(auth, async (user) => {
     });
   }
 
+  function showReview(allData) {
+    renderReview(allData);
+  }
+
+  function waitForPartner() {
+    questionBlock.style.display = 'none';
+    completionMessage.style.display = 'block';
+
+    onValue(allAnswersRef, snap => {
+      const all = snap.val();
+      if (all && Object.keys(all).length >= 2) {
+        completionMessage.style.display = 'none';
+        off(allAnswersRef);
+        renderReview(all);
+      }
+    });
+  }
+
   function renderReview(all) {
     // Find partner by UID (not username)
     const partnerUID = Object.keys(all).find(uid => uid !== currentUserId);
     if (!partnerUID) return;
 
+    // Get user's answers from database if not in memory
+    const myAnswers = answers.length > 0 ? answers : (all[currentUserId]?.answers || []);
+
     let html = '<h3>📘 Tier 3 Answers</h3>';
     questions.forEach((q, i) => {
       html += `
         <details><summary><strong>${q}</strong></summary>
-        <p><strong>You:</strong> ${answers[i] || ''}</p>
+        <p><strong>You:</strong> ${myAnswers[i] || ''}</p>
         <p><strong>Your Match:</strong> ${all[partnerUID].answers[i] || ''}</p>
         </details>`;
     });
@@ -135,32 +279,6 @@ onAuthStateChanged(auth, async (user) => {
     reviewSection.innerHTML = replaceEmojiWithMonochrome(html);
     reviewSection.style.display = 'block';
     voteSection.style.display = 'block';
-  }
-
-  voteYesBtn.onclick = () => {
-    set(voteRef, true).then(waitForVotes);
-  };
-
-  voteNoBtn.onclick = () => {
-    const confirmEnd = prompt("If you're sure you want to end the match, type 'Goodbye' and press OK.");
-    if (confirmEnd?.trim().toLowerCase() === "goodbye") {
-      set(voteRef, false).then(waitForVotes);
-    }
-  };
-
-  function waitForVotes() {
-    voteYesBtn.style.display = 'none';
-    voteNoBtn.style.display = 'none';
-    voteWaiting.style.display = 'block';
-
-    onValue(allVotesRef, snap => {
-      const votes = snap.val();
-      if (!votes || Object.keys(votes).length < 2) return;
-
-      const bothYes = Object.values(votes).every(v => v === true);
-      off(allVotesRef);
-      window.location.href = bothYes ? '/chat/index.html' : '/goodbye.html';
-    });
   }
 
   // Start the question flow

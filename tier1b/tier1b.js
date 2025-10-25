@@ -46,15 +46,38 @@ onAuthStateChanged(auth, (user) => {
   }
 
   const currentUserId = user.uid;
-  const matchID = localStorage.getItem('woobieMatchID');
-  const localWoobieUsername = localStorage.getItem('woobieUsername');
+  let matchID = localStorage.getItem('woobieMatchID');
+  let localWoobieUsername = localStorage.getItem('woobieUsername');
 
+  // Fallback to database if localStorage is empty
   if (!matchID || !localWoobieUsername) {
-    alert("Missing critical session data (Match ID or Woobie Name). Please restart.");
-    window.location.href = '/name-picker/index.html';
+    get(ref(db, `users/${currentUserId}/currentMatch`))
+      .then(snap => {
+        const matchData = snap.val();
+        if (!matchData || !matchData.matchID || !matchData.username) {
+          alert("No match found. Please restart.");
+          window.location.href = '/name-picker/index.html';
+          return;
+        }
+        matchID = matchData.matchID;
+        localWoobieUsername = matchData.username;
+        localStorage.setItem('woobieMatchID', matchID);
+        localStorage.setItem('woobieUsername', localWoobieUsername);
+
+        // Re-run the main logic with fetched data
+        initializeTier1b(currentUserId, matchID, localWoobieUsername);
+      })
+      .catch(err => {
+        console.error("Error fetching match data:", err);
+        alert("Error loading session. Please try again.");
+      });
     return;
   }
 
+  initializeTier1b(currentUserId, matchID, localWoobieUsername);
+});
+
+async function initializeTier1b(currentUserId, matchID, localWoobieUsername) {
   console.log(`[Tier1b INIT] MatchID: ${matchID}, UserID: ${currentUserId}, WoobieName: ${localWoobieUsername}`);
 
   const userMatchProgressRef = ref(db, `users/${currentUserId}/currentMatch`);
@@ -73,6 +96,7 @@ onAuthStateChanged(auth, (user) => {
   const userVoteRef = ref(db, `matches/${matchID}/tier1bVotes/${currentUserId}`);
   const allTier1bVotesRef = ref(db, `matches/${matchID}/tier1bVotes`);
 
+  // Declare listener variables at the top so they're available in all code paths
   let allAnswersListener = null;
   let allLettersListener = null;
   let allVotesListener = null;
@@ -84,6 +108,79 @@ onAuthStateChanged(auth, (user) => {
   }
   window.addEventListener('beforeunload', cleanupListeners);
 
+  // Check if user has already submitted answers
+  try {
+    const existingAnswersSnap = await get(userAnswersRef);
+    if (existingAnswersSnap.exists()) {
+      // User has already answered, skip questions and go to review/waiting
+      console.log("[Tier1b] User has already submitted answers, skipping to review");
+      if (questionBlock) questionBlock.style.display = 'none';
+      if (completionMessage) completionMessage.style.display = 'block';
+
+      // Check if BOTH users have answered already
+      const allAnswersSnap = await get(allTier1bAnswersRef);
+      const allAnswersData = allAnswersSnap.val();
+
+      if (allAnswersData && Object.keys(allAnswersData).length >= 2) {
+        // Both users already answered, go directly to review
+        const partnerUID = Object.keys(allAnswersData).find(uidKey => uidKey !== currentUserId);
+        if (partnerUID && allAnswersData[currentUserId] && allAnswersData[partnerUID]) {
+          console.log("[Tier1b] Both answers exist, showing review immediately");
+          completionMessage.style.display = 'none';
+          showReviewUI(allAnswersData[currentUserId], allAnswersData[partnerUID]);
+        } else {
+          // Wait for partner to finish
+          waitForBothAnswers();
+        }
+      } else {
+        // Wait for partner to finish
+        waitForBothAnswers();
+      }
+
+      return; // Don't run the rest of the initialization
+    }
+  } catch (err) {
+    console.error("Error checking existing answers:", err);
+  }
+
+  // Load partial answers from database (survives logout and works cross-device)
+  const draftRef = ref(db, `matches/${matchID}/tier1bDrafts/${currentUserId}`);
+  try {
+    const draftSnap = await get(draftRef);
+    if (draftSnap.exists()) {
+      const draftData = draftSnap.val();
+      localAnswersDraft = draftData.answers || [];
+      currentIndex = draftData.currentIndex || 0;
+      console.log('[Tier1b] Loaded partial draft from database:', {
+        answerCount: localAnswersDraft.length,
+        currentIndex: currentIndex
+      });
+    } else {
+      console.log('[Tier1b] No draft found in database, starting fresh');
+    }
+  } catch (err) {
+    console.error('Error loading tier1b draft from database:', err);
+  }
+
+  function saveProgress() {
+    const draft = {
+      answers: localAnswersDraft,
+      currentIndex: currentIndex,
+      lastSaved: Date.now()
+    };
+    // Save to database (survives logout and works cross-device)
+    set(draftRef, draft)
+      .then(() => {
+        console.log('[Tier1b] Saved draft to database:', {
+          answerCount: localAnswersDraft.length,
+          currentIndex: currentIndex
+        });
+      })
+      .catch(err => {
+        console.error('[Tier1b] Error saving draft to database:', err);
+      });
+  }
+
   function showQuestion() {
     if (currentIndex >= questions.length) {
       if (questionBlock) questionBlock.style.display = 'none';
@@ -91,6 +188,11 @@ onAuthStateChanged(auth, (user) => {
       set(userAnswersRef, { answers: localAnswersDraft, woobieName: localWoobieUsername })
         .then(() => {
           console.log("Tier1b answers submitted for user:", currentUserId);
+          // Clear the draft from database since it's now fully submitted
+          return set(draftRef, null);
+        })
+        .then(() => {
+          console.log("Tier1b draft cleared from database");
         })
         .catch(err => console.error("Error saving tier1b answers:", err));
       waitForBothAnswers();
@@ -108,6 +210,7 @@ onAuthStateChanged(auth, (user) => {
       if (!val) return;
       localAnswersDraft[currentIndex] = { question: questions[currentIndex], value: val, format: 'text' };
       currentIndex++;
+      saveProgress(); // Save to localStorage after each answer
       showQuestion();
     };
   }
@@ -116,21 +219,21 @@ onAuthStateChanged(auth, (user) => {
     console.log("[waitForBothAnswers] Setting listener on:", allTier1bAnswersRef.toString());
     if (allAnswersListener) off(allTier1bAnswersRef, 'value', allAnswersListener);
 
-    allAnswersListener = onValue(allTier1bAnswersRef, (snap) => {
+    allAnswersListener = onValue(allTier1bAnswersRef, async (snap) => {
       const allAnswersData = snap.val();
       console.log("[waitForBothAnswers] All answers data:", allAnswersData);
       if (!allAnswersData || Object.keys(allAnswersData).length < 2) {
         if (completionMessage) completionMessage.style.display = 'block';
         return;
       }
-      
+
       const partnerUID = Object.keys(allAnswersData).find(uidKey => uidKey !== currentUserId);
       if (!partnerUID || !allAnswersData[currentUserId] || !allAnswersData[partnerUID]) {
         if (completionMessage) completionMessage.style.display = 'block';
         return;
       }
       if (completionMessage) completionMessage.style.display = 'none';
-      showReviewUI(allAnswersData[currentUserId], allAnswersData[partnerUID]);
+      await showReviewUI(allAnswersData[currentUserId], allAnswersData[partnerUID]);
       off(allTier1bAnswersRef, 'value', allAnswersListener);
       allAnswersListener = null;
     }, (error) => {
@@ -138,75 +241,9 @@ onAuthStateChanged(auth, (user) => {
     });
   }
 
-  function showReviewUI(myData, partnerData) {
-    console.log("[showReviewUI] Showing Q&A and letter UI");
-    const myDisplayName = myData.woobieName || localWoobieUsername || "You";
-    const partnerDisplayName = partnerData.woobieName || "Your Match";
-
-    // Apply emoji replacement to the review header
-    reviewWrapper.innerHTML = replaceEmojiWithMonochrome('<h2>📘 Review Answers</h2>');
-    
-    for (let i = 0; i < questions.length; i++) {
-      reviewWrapper.innerHTML += `
-        <details><summary><strong>${questions[i]}</strong></summary>
-        <p><strong>${myDisplayName}:</strong> ${myData.answers[i]?.value || '<em>No answer</em>'}</p>
-        <p><strong>${partnerDisplayName}:</strong> ${partnerData.answers[i]?.value || '<em>No answer</em>'}</p>
-        </details>`;
-    }
-    
-    // Create the message section with emoji replacement
-    const messageSection = `
-      <h2>💌 Send a Message (Optional)</h2>
-      <textarea id="letter-input" rows="6" placeholder="Max 250 words..."></textarea>
-      <p id="letter-count">0 / 250 words</p>
-      <p id="letter-message" style="color:#ff6666;"></p>
-      <button id="submit-letter" class="woobie-button">Send →</button>
-      <button id="skip-letter" class="woobie-button">Skip</button>
-      <div id="letter-review" style="margin-top:2rem;"></div>
-      <div id="vote-section" style="display:none;">
-        <h2>Do you want to continue to Tier 2?</h2>
-        <button id="vote-yes" class="woobie-button">👍 Yes</button>
-        <button id="vote-no" class="woobie-button">👎 No</button>
-        <p id="vote-waiting" style="display:none;">Waiting for your match's vote...</p>
-      </div>
-    `;
-    
-    reviewWrapper.innerHTML += replaceEmojiWithMonochrome(messageSection);
-
-    const letterInput = document.getElementById('letter-input');
-    const letterCount = document.getElementById('letter-count');
-    const letterMsg = document.getElementById('letter-message');
-    const letterReviewDiv = document.getElementById('letter-review');
-    const voteSectionDiv = document.getElementById('vote-section');
-
-    if(letterInput) letterInput.oninput = () => {
-      const words = letterInput.value.trim().split(/\s+/).filter(Boolean);
-      if(letterCount) letterCount.textContent = `${words.length} / 250 words`;
-    };
-
-    document.getElementById('submit-letter').onclick = () => {
-      if (!letterInput || !letterMsg) return;
-      const text = letterInput.value.trim();
-      const words = text.split(/\s+/).filter(Boolean);
-      const repeated = /(.)\1{20,}/.test(text);
-      if (words.length > 250 || repeated) {
-        letterMsg.textContent = 'Please keep your message under 250 words and avoid excessive repeated characters.';
-        return;
-      }
-      letterMsg.textContent = '';
-      console.log("[submit-letter] Submitting letter:", text);
-      set(userLetterRef, text)
-        .then(() => waitForLetterReview(letterReviewDiv, voteSectionDiv, myData.woobieName, partnerData.woobieName))
-        .catch(err => console.error("Error submitting letter:", err));
-    };
-
-    document.getElementById('skip-letter').onclick = () => {
-      console.log("[skip-letter] Skipping letter.");
-      set(userLetterRef, '')
-        .then(() => waitForLetterReview(letterReviewDiv, voteSectionDiv, myData.woobieName, partnerData.woobieName))
-        .catch(err => console.error("Error skipping letter:", err));
-    };
-
+  // Helper function to attach vote button handlers
+  function attachVoteHandlers() {
+    console.log("[attachVoteHandlers] Attaching vote button click handlers");
     document.getElementById('vote-yes').onclick = () => {
       console.log("[vote-yes] Voted YES for user:", currentUserId);
       set(userVoteRef, true)
@@ -225,18 +262,149 @@ onAuthStateChanged(auth, (user) => {
     };
   }
 
-  function waitForLetterReview(letterReviewElement, voteSectionElement, myDisplayName, partnerDisplayName) {
-    console.log("[waitForLetterReview] Waiting for both letters...");
+  async function showReviewUI(myData, partnerData) {
+    console.log("[showReviewUI] Showing Q&A and letter UI");
+    const myDisplayName = myData.woobieName || localWoobieUsername || "You";
+    const partnerDisplayName = partnerData.woobieName || "Your Match";
+
+    // Apply emoji replacement to the review header
+    reviewWrapper.innerHTML = replaceEmojiWithMonochrome('<h2>📘 Review Answers</h2>');
+
+    for (let i = 0; i < questions.length; i++) {
+      reviewWrapper.innerHTML += `
+        <details><summary><strong>${questions[i]}</strong></summary>
+        <p><strong>${myDisplayName}:</strong> ${myData.answers[i]?.value || '<em>No answer</em>'}</p>
+        <p><strong>${partnerDisplayName}:</strong> ${partnerData.answers[i]?.value || '<em>No answer</em>'}</p>
+        </details>`;
+    }
+
+    // Check if user has already submitted a letter
+    const existingLetterSnap = await get(userLetterRef);
+    const letterAlreadySubmitted = existingLetterSnap.exists();
+
+    console.log("[showReviewUI] Letter already submitted?", letterAlreadySubmitted);
+
+    // Create the message section with emoji replacement
+    const messageSection = `
+      <h2>💌 Send a Message (Optional)</h2>
+      <textarea id="letter-input" rows="6" placeholder="Max 250 words..."></textarea>
+      <p id="letter-count">0 / 250 words</p>
+      <p id="letter-message" style="color:#ff6666;"></p>
+      <button id="submit-letter" class="woobie-button">Send →</button>
+      <button id="skip-letter" class="woobie-button">Skip</button>
+      <div id="letter-review" style="margin-top:2rem;"></div>
+      <div id="vote-section" style="display:none;">
+        <h2>Do you want to continue to Tier 2?</h2>
+        <button id="vote-yes" class="woobie-button">👍 Yes</button>
+        <button id="vote-no" class="woobie-button">👎 No</button>
+        <p id="vote-waiting" style="display:none;">Waiting for your match's vote...</p>
+      </div>
+    `;
+
+    reviewWrapper.innerHTML += replaceEmojiWithMonochrome(messageSection);
+
+    const letterInput = document.getElementById('letter-input');
+    const letterCount = document.getElementById('letter-count');
+    const letterMsg = document.getElementById('letter-message');
+    const letterReviewDiv = document.getElementById('letter-review');
+    const voteSectionDiv = document.getElementById('vote-section');
+
+    // If letter was already submitted, skip the input UI and go to waiting/voting
+    if (letterAlreadySubmitted) {
+      console.log("[showReviewUI] Letter already submitted, skipping input UI");
+      const submitLetterBtn = document.getElementById('submit-letter');
+      const skipLetterBtn = document.getElementById('skip-letter');
+      if (submitLetterBtn) submitLetterBtn.style.display = 'none';
+      if (skipLetterBtn) skipLetterBtn.style.display = 'none';
+      if (letterInput) letterInput.style.display = 'none';
+      if (letterCount) letterCount.style.display = 'none';
+
+      // Attach vote handlers before going to letter review
+      attachVoteHandlers();
+
+      // Go straight to waiting for both letters
+      await waitForLetterReview(letterReviewDiv, voteSectionDiv, myDisplayName, partnerDisplayName);
+      return;
+    }
+
+    if(letterInput) letterInput.oninput = () => {
+      const words = letterInput.value.trim().split(/\s+/).filter(Boolean);
+      if(letterCount) letterCount.textContent = `${words.length} / 250 words`;
+    };
+
+    document.getElementById('submit-letter').onclick = () => {
+      if (!letterInput || !letterMsg) return;
+      const text = letterInput.value.trim();
+      const words = text.split(/\s+/).filter(Boolean);
+      const repeated = /(.)\1{20,}/.test(text);
+      if (words.length > 250 || repeated) {
+        letterMsg.textContent = 'Please keep your message under 250 words and avoid excessive repeated characters.';
+        return;
+      }
+      letterMsg.textContent = '';
+      console.log("[submit-letter] Submitting letter:", text);
+      set(userLetterRef, text)
+        .then(() => {
+          attachVoteHandlers();
+          return waitForLetterReview(letterReviewDiv, voteSectionDiv, myData.woobieName, partnerData.woobieName);
+        })
+        .catch(err => console.error("Error submitting letter:", err));
+    };
+
+    document.getElementById('skip-letter').onclick = () => {
+      console.log("[skip-letter] Skipping letter.");
+      set(userLetterRef, '')
+        .then(() => {
+          attachVoteHandlers();
+          return waitForLetterReview(letterReviewDiv, voteSectionDiv, myData.woobieName, partnerData.woobieName);
+        })
+        .catch(err => console.error("Error skipping letter:", err));
+    };
+
+    // Attach vote handlers for the initial flow (when letter hasn't been submitted yet)
+    attachVoteHandlers();
+  }
+
+  async function waitForLetterReview(letterReviewElement, voteSectionElement, myDisplayName, partnerDisplayName) {
+    console.log("[waitForLetterReview] Checking for both letters...");
     const submitLetterBtn = document.getElementById('submit-letter');
     const skipLetterBtn = document.getElementById('skip-letter');
     if (submitLetterBtn) submitLetterBtn.style.display = 'none';
     if (skipLetterBtn) skipLetterBtn.style.display = 'none';
-    
+
+    // First, check if both letters already exist
+    try {
+      const allLettersSnap = await get(allTier1bLettersRef);
+      const allLettersData = allLettersSnap.val();
+      console.log("[waitForLetterReview] Initial check - letters:", allLettersData);
+
+      if (allLettersData && Object.keys(allLettersData).length >= 2) {
+        const partnerUID = Object.keys(allLettersData).find(uidKey => uidKey !== currentUserId);
+        if (partnerUID && allLettersData[partnerUID] !== undefined && allLettersData[currentUserId] !== undefined) {
+          // Both letters exist, show them immediately
+          console.log("[waitForLetterReview] Both letters already exist, showing review");
+          const letterReviewHTML = `
+            <h3>💌 Direct Messages</h3>
+            <details open><summary>What ${myDisplayName} wrote</summary><p>${allLettersData[currentUserId] || '(You chose not to send a message.)'}</p></details>
+            <details open><summary>What ${partnerDisplayName} wrote</summary><p>${allLettersData[partnerUID] || '(Your match chose not to send a message.)'}</p></details>
+          `;
+
+          letterReviewElement.innerHTML = replaceEmojiWithMonochrome(letterReviewHTML);
+          voteSectionElement.style.display = 'block';
+          return; // Don't set up listener
+        }
+      }
+    } catch (err) {
+      console.error("[waitForLetterReview] Error checking letters:", err);
+    }
+
+    // If we get here, both letters don't exist yet, so set up listener
+    console.log("[waitForLetterReview] Waiting for partner's letter...");
     if (allLettersListener) off(allTier1bLettersRef, 'value', allLettersListener);
 
     allLettersListener = onValue(allTier1bLettersRef, (snap) => {
       const allLettersData = snap.val();
-      console.log("[waitForLetterReview] letters:", allLettersData);
+      console.log("[waitForLetterReview] Listener fired - letters:", allLettersData);
       if (!allLettersData || Object.keys(allLettersData).length < 2) return;
 
       const partnerUID = Object.keys(allLettersData).find(uidKey => uidKey !== currentUserId);
@@ -248,7 +416,7 @@ onAuthStateChanged(auth, (user) => {
         <details open><summary>What ${myDisplayName} wrote</summary><p>${allLettersData[currentUserId] || '(You chose not to send a message.)'}</p></details>
         <details open><summary>What ${partnerDisplayName} wrote</summary><p>${allLettersData[partnerUID] || '(Your match chose not to send a message.)'}</p></details>
       `;
-      
+
       letterReviewElement.innerHTML = replaceEmojiWithMonochrome(letterReviewHTML);
       voteSectionElement.style.display = 'block';
       off(allTier1bLettersRef, 'value', allLettersListener);
@@ -293,4 +461,4 @@ onAuthStateChanged(auth, (user) => {
   }
 
   showQuestion();
-});
+}

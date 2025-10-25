@@ -9,7 +9,186 @@ const logger = require("firebase-functions/logger");
 
 // Import the daily nudge email service
 const {DailyNudgeEmailService} = require("./email/daily-nudge-email");
+// Import email templates
+const {
+  getWelcomeEmail,
+  getTierCompletionEmail,
+  getQueueEnteredEmail,
+  getQueueWaitingEmail,
+  getWeeklyDigestEmail,
+} = require("./email/email-templates");
 
+const sgMail = require("@sendgrid/mail");
+
+// Initialize SendGrid
+// For v2 functions, use environment variables instead of functions.config()
+const sendgridKey = process.env.SENDGRID_API_KEY;
+const sendgridFrom = process.env.SENDGRID_FROM_EMAIL || "friends@woobie.fun";
+if (sendgridKey) {
+  sgMail.setApiKey(sendgridKey);
+  logger.info("SendGrid initialized successfully");
+} else {
+  logger.warn("SendGrid API key not configured. Email notifications will be skipped.");
+}
+
+/**
+ * Send email notification when users are matched
+ * Triggers when stage changes to 'bio'
+ */
+exports.sendMatchNotification = onValueWritten(
+    {
+      ref: "/users/{userId}/currentMatch/stage",
+      instance: "woobiedinobear-default-rtdb",
+    },
+    async (event) => {
+      const userId = event.params.userId;
+      const newStage = event.data.after.val();
+      const previousStage = event.data.before.val();
+
+      // Only send email when transitioning to 'bio' (matched)
+      if (newStage !== "bio" || previousStage === "bio") {
+        return null;
+      }
+
+      if (!sendgridKey) {
+        logger.warn("SendGrid not configured. Skipping email.");
+        return null;
+      }
+
+      try {
+      // Get user's email
+        const userRecord = await admin.auth().getUser(userId);
+        const userEmail = userRecord.email;
+
+        if (!userEmail) {
+          logger.warn(`❌ No email found for user ${userId}`);
+          return null;
+        }
+
+        // Get match info
+        const userSnapshot = await admin.database().ref(`/users/${userId}`).get();
+        const userData = userSnapshot.val();
+        const matchID = userData.currentMatch?.matchID;
+        const woobieName = userData.currentMatch?.username;
+
+        logger.info(`📧 Preparing match notification for ${userId}:`, {
+          email: userEmail,
+          woobieName: woobieName,
+          matchID: matchID,
+        });
+
+        const msg = {
+          to: userEmail,
+          from: sendgridFrom,
+          subject: "🎉 You've been matched on Woobie!",
+          html: `
+          <div style="font-family: 'Courier New', monospace; background-color: #000; color: #00ff00; padding: 2rem; border: 2px solid #00ff00;">
+            <h1 style="color: #33ff33;">🎉 You found a Woobie friend!</h1>
+            <p>Hi <strong style="color: #00ffff;">${woobieName}</strong>,</p>
+            <p>Great news! You've been matched with someone who shares your interests.</p>
+            <p>Click below to continue your journey together:</p>
+            <a href="https://woobie.app/bio/index.html"
+               style="display: inline-block; margin: 1rem 0; padding: 1rem 2rem; background-color: #00ff00; color: #000; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              Continue to Your Match
+            </a>
+            <p style="color: #888; font-size: 0.9em;">Match ID: ${matchID}</p>
+          </div>
+        `,
+          text: `Hi ${woobieName}, You've been matched on Woobie! Visit https://woobie.app/bio/index.html to continue.`,
+        };
+
+        await sgMail.send(msg);
+        logger.info(`✅ Match notification email sent to ${userEmail} for user ${userId}`);
+
+        // Track email delivery in database
+        await admin.database().ref(`/users/${userId}/emailsSent/matchNotification`).set({
+          sentAt: admin.database.ServerValue.TIMESTAMP,
+          to: userEmail,
+          woobieName: woobieName,
+          matchID: matchID,
+        });
+
+        return null;
+      } catch (error) {
+        logger.error(`❌ Error sending match notification email for user ${userId}:`, error);
+        if (error.response && error.response.body) {
+          logger.error("SendGrid error details:", JSON.stringify(error.response.body));
+        }
+
+        // Track failed email in database
+        await admin.database().ref(`/users/${userId}/emailsSent/matchNotification`).set({
+          failedAt: admin.database.ServerValue.TIMESTAMP,
+          error: error.message || "Unknown error",
+        });
+
+        return null;
+      }
+    },
+);
+
+/**
+ * Send email when match reaches chatroom
+ */
+exports.sendChatroomNotification = onValueWritten(
+    {
+      ref: "/users/{userId}/currentMatch/stage",
+      instance: "woobiedinobear-default-rtdb",
+    },
+    async (event) => {
+      const userId = event.params.userId;
+      const newStage = event.data.after.val();
+      const previousStage = event.data.before.val();
+
+      // Only send when entering chatroom for first time
+      if (newStage !== "chatroom" || previousStage === "chatroom") {
+        return null;
+      }
+
+      if (!sendgridKey) {
+        logger.warn("SendGrid not configured. Skipping email.");
+        return null;
+      }
+
+      try {
+        const userRecord = await admin.auth().getUser(userId);
+        const userEmail = userRecord.email;
+
+        if (!userEmail) {
+          return null;
+        }
+
+        const userSnapshot = await admin.database().ref(`/users/${userId}`).get();
+        const userData = userSnapshot.val();
+        const woobieName = userData.currentMatch?.username;
+
+        const msg = {
+          to: userEmail,
+          from: sendgridFrom,
+          subject: "💬 Your Woobie chatroom is ready!",
+          html: `
+          <div style="font-family: 'Courier New', monospace; background-color: #000; color: #00ff00; padding: 2rem; border: 2px solid #00ff00;">
+            <h1 style="color: #33ff33;">💬 Welcome to your chatroom!</h1>
+            <p>Hi <strong style="color: #00ffff;">${woobieName}</strong>,</p>
+            <p>You and your match have successfully completed all tiers! 🎉</p>
+            <p>Your private chatroom is now open. You can share messages, images, and get to know each other better.</p>
+            <a href="https://yourdomain.com/chat/index.html" 
+               style="display: inline-block; margin: 1rem 0; padding: 1rem 2rem; background-color: #00ff00; color: #000; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              Enter Your Chatroom
+            </a>
+          </div>
+        `,
+          text: `Hi ${woobieName}, Your Woobie chatroom is ready! Visit https://yourdomain.com/chat/index.html`,
+        };
+
+        await sgMail.send(msg);
+        logger.info(`Chatroom notification email sent to ${userEmail}`);
+        return null;
+      } catch (error) {
+        logger.error(`Error sending chatroom notification:`, error);
+        return null;
+      }
+    },
+);
 admin.initializeApp();
 
 // Set global options for all v2 functions in this file
@@ -517,6 +696,62 @@ exports.checkUserNudgeStatus = onCall(async (request) => {
   }
 });
 
+/**
+ * Diagnostic function to check email delivery status for a user
+ * This helps debug email issues
+ */
+exports.checkEmailStatus = onCall(async (request) => {
+  const {auth} = request;
+
+  if (!auth) {
+    throw new Error("User must be authenticated");
+  }
+
+  try {
+    const userUID = auth.uid;
+
+    // Get user data
+    const userRef = admin.database().ref(`users/${userUID}`);
+    const userSnapshot = await userRef.get();
+    const userData = userSnapshot.val();
+
+    // Get auth data for email address
+    const userRecord = await admin.auth().getUser(userUID);
+    const userEmail = userRecord.email;
+
+    // Collect email status
+    const emailStatus = {
+      uid: userUID,
+      email: userEmail,
+      emailVerified: userRecord.emailVerified,
+      welcomeEmail: {
+        sent: userData.welcomeEmailSent || false,
+        sentAt: userData.welcomeEmailSentAt || null,
+        messageId: userData.welcomeEmailMessageId || null,
+        failed: userData.welcomeEmailFailed || false,
+        error: userData.welcomeEmailError || null,
+      },
+      queueEmail: {
+        sent: userData.queueEmailSent || false,
+        sentAt: userData.queueEmailSentAt || null,
+        messageId: userData.queueEmailMessageId || null,
+      },
+      matchNotification: userData.emailsSent?.matchNotification || null,
+      lastDailyEmail: userData.lastDailyEmail || null,
+    };
+
+    logger.info(`Email status check for ${userUID}:`, emailStatus);
+
+    return {
+      success: true,
+      ...emailStatus,
+    };
+  } catch (error) {
+    logger.error("Error checking email status:", error);
+    throw new Error("Failed to check email status: " + error.message);
+  }
+});
+
 // Utility functions for analytics
 // eslint-disable-next-line require-jsdoc
 function getStageBreakdown(sentEmails) {
@@ -535,5 +770,619 @@ function getSkipReasons(skippedEmails) {
   });
   return reasons;
 }
+
+/**
+ * ========================================
+ * NEW EMAIL NOTIFICATION FUNCTIONS
+ * ========================================
+ */
+
+/**
+ * Helper function to safely send emails with delivery tracking
+ * Returns {sent: boolean, messageId: string, error: any}
+ */
+async function safeSendEmail(msg, logContext) {
+  if (!sendgridKey) {
+    logger.info(`Email skipped (no API key): ${logContext}`);
+    return {sent: false, error: "No API key"};
+  }
+  try {
+    const response = await sgMail.send(msg);
+    const messageId = response && response[0] ? response[0].headers["x-message-id"] : null;
+    logger.info(`✅ Email sent successfully: ${logContext}`, {
+      to: msg.to,
+      messageId: messageId,
+      subject: msg.subject,
+    });
+    return {sent: true, messageId: messageId};
+  } catch (error) {
+    // Log the full error details from SendGrid
+    logger.error(`❌ Error sending email (${logContext}):`, error);
+    if (error.response && error.response.body) {
+      logger.error("SendGrid error details:", JSON.stringify(error.response.body));
+    }
+    return {sent: false, error: error.message || error};
+  }
+}
+
+/**
+ * Send welcome email when a new user node is created in the database
+ */
+exports.sendWelcomeEmail = onValueCreated(
+    {
+      ref: "/users/{userId}",
+      instance: "woobiedinobear-default-rtdb",
+    },
+    async (event) => {
+      const userId = event.params.userId;
+      const userData = event.data.val();
+
+      // Skip if welcome email already sent
+      if (userData.welcomeEmailSent) {
+        return null;
+      }
+
+      try {
+        // Get user's email from Auth
+        const userRecord = await admin.auth().getUser(userId);
+        const userEmail = userRecord.email;
+
+        if (!userEmail) {
+          logger.warn(`❌ No email for user ${userId}`);
+          return null;
+        }
+
+        const displayName = userData.currentMatch?.username || userData.woobieName || "friend";
+        logger.info(`📧 Preparing welcome email for ${userId}:`, {
+          email: userEmail,
+          displayName: displayName,
+        });
+
+        const emailContent = getWelcomeEmail(displayName);
+
+        const msg = {
+          to: userEmail,
+          from: {
+            email: sendgridFrom,
+            name: "Woobie",
+          },
+          subject: emailContent.subject,
+          html: emailContent.html,
+        };
+
+        const result = await safeSendEmail(msg, `welcome email to ${userEmail}`);
+
+        // Store that we sent the welcome email
+        if (result.sent) {
+          await admin.database().ref(`users/${userId}`).update({
+            welcomeEmailSent: true,
+            welcomeEmailSentAt: admin.database.ServerValue.TIMESTAMP,
+            welcomeEmailMessageId: result.messageId || null,
+          });
+        } else {
+          await admin.database().ref(`users/${userId}`).update({
+            welcomeEmailFailed: true,
+            welcomeEmailFailedAt: admin.database.ServerValue.TIMESTAMP,
+            welcomeEmailError: result.error || "Unknown error",
+          });
+        }
+
+        return null;
+      } catch (error) {
+        logger.error(`❌ Error in welcome email function for ${userId}:`, error);
+        return null;
+      }
+    },
+);
+
+/**
+ * Send email when user enters the matchmaking queue
+ */
+exports.sendQueueEnteredEmail = onValueCreated(
+    {
+      ref: "/queue/{userId}",
+      instance: "woobiedinobear-default-rtdb",
+    },
+    async (event) => {
+      const userId = event.params.userId;
+      const queueData = event.data.val();
+
+      if (!queueData) {
+        return null;
+      }
+
+      try {
+        // Get user's email from Auth
+        const userRecord = await admin.auth().getUser(userId);
+        const userEmail = userRecord.email;
+
+        if (!userEmail) {
+          logger.warn(`❌ No email found for queued user ${userId}`);
+          return null;
+        }
+
+        const userName = queueData.woobieName || "friend";
+        logger.info(`📧 Preparing queue entered email for ${userId}:`, {
+          email: userEmail,
+          woobieName: userName,
+        });
+
+        const emailContent = getQueueEnteredEmail(userName);
+
+        const msg = {
+          to: userEmail,
+          from: {
+            email: sendgridFrom,
+            name: "Woobie",
+          },
+          subject: emailContent.subject,
+          html: emailContent.html,
+        };
+
+        const result = await safeSendEmail(msg, `queue entered email to ${userEmail}`);
+
+        // Store when user entered queue for follow-up emails
+        await admin.database().ref(`users/${userId}`).update({
+          queueEnteredAt: admin.database.ServerValue.TIMESTAMP,
+          queueEmailSent: result.sent,
+          queueEmailSentAt: admin.database.ServerValue.TIMESTAMP,
+          queueEmailMessageId: result.messageId || null,
+        });
+
+        return null;
+      } catch (error) {
+        logger.error(`❌ Error sending queue email for user ${userId}:`, error);
+        return null;
+      }
+    },
+);
+
+/**
+ * Check for users waiting in queue and send reminder emails
+ * Runs daily at 2 PM UTC
+ */
+exports.sendQueueWaitingEmails = onSchedule(
+    {
+      schedule: "0 14 * * *", // 2 PM UTC daily
+      timeZone: "UTC",
+    },
+    async (event) => {
+      const db = admin.database();
+
+      try {
+        logger.info("Starting queue waiting email check...");
+
+        const queueSnapshot = await db.ref("queue").get();
+        const queueData = queueSnapshot.val() || {};
+
+        let emailsSent = 0;
+
+        for (const [userId, userData] of Object.entries(queueData)) {
+          try {
+            // Get when user entered queue
+            const userSnapshot = await db.ref(`users/${userId}`).get();
+            const userRecord = userSnapshot.val();
+
+            if (!userRecord || !userRecord.queueEnteredAt) {
+              continue;
+            }
+
+            const hoursWaiting = (Date.now() - userRecord.queueEnteredAt) / (1000 * 60 * 60);
+
+            // Send emails at 24h, 48h, 72h intervals
+            const shouldSend =
+              (hoursWaiting >= 24 && hoursWaiting < 25 && !userRecord.queueEmail24h) ||
+              (hoursWaiting >= 48 && hoursWaiting < 49 && !userRecord.queueEmail48h) ||
+              (hoursWaiting >= 72 && hoursWaiting < 73 && !userRecord.queueEmail72h);
+
+            if (!shouldSend) {
+              continue;
+            }
+
+            const userAuth = await admin.auth().getUser(userId);
+            const userEmail = userAuth.email;
+
+            if (!userEmail) {
+              continue;
+            }
+
+            const userName = userData.woobieName || "friend";
+            const emailContent = getQueueWaitingEmail(userName, Math.floor(hoursWaiting));
+
+            const msg = {
+              to: userEmail,
+              from: {
+                email: sendgridFrom,
+                name: "Woobie",
+              },
+              subject: emailContent.subject,
+              html: emailContent.html,
+            };
+
+            await safeSendEmail(msg, `queue waiting email to ${userEmail} (${Math.floor(hoursWaiting)}h wait)`);
+            logger.info(`Queue waiting email sent to ${userEmail} (${Math.floor(hoursWaiting)}h wait)`);
+
+            // Mark which interval email was sent
+            const updateKey = hoursWaiting >= 72 ? "queueEmail72h" :
+                            hoursWaiting >= 48 ? "queueEmail48h" : "queueEmail24h";
+            await db.ref(`users/${userId}`).update({
+              [updateKey]: true,
+            });
+
+            emailsSent++;
+          } catch (error) {
+            logger.error(`Error processing queue waiting email for ${userId}:`, error);
+          }
+        }
+
+        logger.info(`Queue waiting emails sent: ${emailsSent}`);
+        return {success: true, emailsSent};
+      } catch (error) {
+        logger.error("Error in queue waiting email function:", error);
+        throw error;
+      }
+    },
+);
+
+/**
+ * Send email when partner completes Tier 1a
+ */
+exports.sendTier1aCompletionEmail = onValueCreated(
+    {
+      ref: "/matches/{matchID}/tier1aAnswers/{userId}",
+      instance: "woobiedinobear-default-rtdb",
+    },
+    async (event) => {
+      const matchID = event.params.matchID;
+      const completedUserId = event.params.userId;
+
+      try {
+        // Get match data to find partner
+        const matchSnapshot = await admin.database().ref(`matches/${matchID}`).get();
+        const matchData = matchSnapshot.val();
+
+        if (!matchData || !matchData.users) {
+          return null;
+        }
+
+        // Find partner UID
+        const partnerUID = Object.keys(matchData.users).find((uid) => uid !== completedUserId);
+        if (!partnerUID) {
+          return null;
+        }
+
+        // Get partner's email
+        const partnerAuth = await admin.auth().getUser(partnerUID);
+        const partnerEmail = partnerAuth.email;
+
+        if (!partnerEmail) {
+          return null;
+        }
+
+        const partnerName = matchData.users[partnerUID];
+        const completedUserName = matchData.users[completedUserId];
+
+        const emailContent = getTierCompletionEmail(partnerName, completedUserName, "tier1a");
+
+        const msg = {
+          to: partnerEmail,
+          from: {
+            email: sendgridFrom,
+            name: "Woobie",
+          },
+          subject: emailContent.subject,
+          html: emailContent.html,
+        };
+
+        await sgMail.send(msg);
+        logger.info(`Tier 1a completion email sent to ${partnerEmail}`);
+
+        return null;
+      } catch (error) {
+        logger.error(`Error sending Tier 1a completion email for match ${matchID}:`, error);
+        return null;
+      }
+    },
+);
+
+/**
+ * Send email when partner completes Tier 1b
+ */
+exports.sendTier1bCompletionEmail = onValueCreated(
+    {
+      ref: "/matches/{matchID}/tier1bAnswers/{userId}",
+      instance: "woobiedinobear-default-rtdb",
+    },
+    async (event) => {
+      const matchID = event.params.matchID;
+      const completedUserId = event.params.userId;
+
+      try {
+        const matchSnapshot = await admin.database().ref(`matches/${matchID}`).get();
+        const matchData = matchSnapshot.val();
+
+        if (!matchData || !matchData.users) {
+          return null;
+        }
+
+        const partnerUID = Object.keys(matchData.users).find((uid) => uid !== completedUserId);
+        if (!partnerUID) {
+          return null;
+        }
+
+        const partnerAuth = await admin.auth().getUser(partnerUID);
+        const partnerEmail = partnerAuth.email;
+
+        if (!partnerEmail) {
+          return null;
+        }
+
+        const partnerName = matchData.users[partnerUID];
+        const completedUserName = matchData.users[completedUserId];
+
+        const emailContent = getTierCompletionEmail(partnerName, completedUserName, "tier1b");
+
+        const msg = {
+          to: partnerEmail,
+          from: {
+            email: sendgridFrom,
+            name: "Woobie",
+          },
+          subject: emailContent.subject,
+          html: emailContent.html,
+        };
+
+        await sgMail.send(msg);
+        logger.info(`Tier 1b completion email sent to ${partnerEmail}`);
+
+        return null;
+      } catch (error) {
+        logger.error(`Error sending Tier 1b completion email for match ${matchID}:`, error);
+        return null;
+      }
+    },
+);
+
+/**
+ * Send email when partner completes Tier 2
+ */
+exports.sendTier2CompletionEmail = onValueCreated(
+    {
+      ref: "/matches/{matchID}/tier2/{userId}",
+      instance: "woobiedinobear-default-rtdb",
+    },
+    async (event) => {
+      const matchID = event.params.matchID;
+      const completedUserId = event.params.userId;
+
+      try {
+        const matchSnapshot = await admin.database().ref(`matches/${matchID}`).get();
+        const matchData = matchSnapshot.val();
+
+        if (!matchData || !matchData.users) {
+          return null;
+        }
+
+        const partnerUID = Object.keys(matchData.users).find((uid) => uid !== completedUserId);
+        if (!partnerUID) {
+          return null;
+        }
+
+        const partnerAuth = await admin.auth().getUser(partnerUID);
+        const partnerEmail = partnerAuth.email;
+
+        if (!partnerEmail) {
+          return null;
+        }
+
+        const partnerName = matchData.users[partnerUID];
+        const completedUserName = matchData.users[completedUserId];
+
+        const emailContent = getTierCompletionEmail(partnerName, completedUserName, "tier2");
+
+        const msg = {
+          to: partnerEmail,
+          from: {
+            email: sendgridFrom,
+            name: "Woobie",
+          },
+          subject: emailContent.subject,
+          html: emailContent.html,
+        };
+
+        await sgMail.send(msg);
+        logger.info(`Tier 2 completion email sent to ${partnerEmail}`);
+
+        return null;
+      } catch (error) {
+        logger.error(`Error sending Tier 2 completion email for match ${matchID}:`, error);
+        return null;
+      }
+    },
+);
+
+/**
+ * Send email when partner completes Tier 3
+ */
+exports.sendTier3CompletionEmail = onValueCreated(
+    {
+      ref: "/matches/{matchID}/tier3Answers/{userId}",
+      instance: "woobiedinobear-default-rtdb",
+    },
+    async (event) => {
+      const matchID = event.params.matchID;
+      const completedUserId = event.params.userId;
+
+      try {
+        const matchSnapshot = await admin.database().ref(`matches/${matchID}`).get();
+        const matchData = matchSnapshot.val();
+
+        if (!matchData || !matchData.users) {
+          return null;
+        }
+
+        const partnerUID = Object.keys(matchData.users).find((uid) => uid !== completedUserId);
+        if (!partnerUID) {
+          return null;
+        }
+
+        const partnerAuth = await admin.auth().getUser(partnerUID);
+        const partnerEmail = partnerAuth.email;
+
+        if (!partnerEmail) {
+          return null;
+        }
+
+        const partnerName = matchData.users[partnerUID];
+        const completedUserName = matchData.users[completedUserId];
+
+        const emailContent = getTierCompletionEmail(partnerName, completedUserName, "tier3");
+
+        const msg = {
+          to: partnerEmail,
+          from: {
+            email: sendgridFrom,
+            name: "Woobie",
+          },
+          subject: emailContent.subject,
+          html: emailContent.html,
+        };
+
+        await sgMail.send(msg);
+        logger.info(`Tier 3 completion email sent to ${partnerEmail}`);
+
+        return null;
+      } catch (error) {
+        logger.error(`Error sending Tier 3 completion email for match ${matchID}:`, error);
+        return null;
+      }
+    },
+);
+
+/**
+ * Send weekly digest email to all active users
+ * Runs every Sunday at 9 AM UTC
+ */
+exports.sendWeeklyDigest = onSchedule(
+    {
+      schedule: "0 9 * * 0", // Every Sunday at 9 AM UTC
+      timeZone: "UTC",
+    },
+    async (event) => {
+      const db = admin.database();
+
+      try {
+        logger.info("Starting weekly digest email send...");
+
+        const usersSnapshot = await db.ref("users").get();
+        const users = usersSnapshot.val() || {};
+
+        let emailsSent = 0;
+        const errors = [];
+
+        for (const [userUID, userData] of Object.entries(users)) {
+          try {
+            // Skip users without email or active match
+            if (!userData.email || !userData.currentMatch || !userData.currentMatch.matchID) {
+              continue;
+            }
+
+            // Get match data
+            const matchID = userData.currentMatch.matchID;
+            const matchSnapshot = await db.ref(`matches/${matchID}`).get();
+            const matchData = matchSnapshot.val();
+
+            if (!matchData || !matchData.users) {
+              continue;
+            }
+
+            // Find partner
+            const partnerUID = Object.keys(matchData.users).find((uid) => uid !== userUID);
+            const partnerName = matchData.users[partnerUID];
+
+            // Calculate stats for the week
+            const currentStage = userData.currentMatch.stage || "waiting";
+
+            // Count tiers completed
+            let tiersCompleted = 0;
+            if (matchData.tier1aAnswers && matchData.tier1aAnswers[userUID]) tiersCompleted++;
+            if (matchData.tier1bAnswers && matchData.tier1bAnswers[userUID]) tiersCompleted++;
+            if (matchData.tier2 && matchData.tier2[userUID]) tiersCompleted++;
+            if (matchData.tier3Answers && matchData.tier3Answers[userUID]) tiersCompleted++;
+
+            // Count messages (if in chatroom)
+            let messagesExchanged = 0;
+            if (matchData.chat) {
+              messagesExchanged = Object.values(matchData.chat).filter((msg) =>
+                msg.senderUID === userUID || msg.senderUID === partnerUID,
+              ).length;
+            }
+
+            // Determine next action
+            let nextAction = null;
+            let actionUrl = null;
+
+            if (currentStage === "tier1a" && matchData.tier1aAnswers && matchData.tier1aAnswers[partnerUID] && !matchData.tier1aVotes[userUID]) {
+              nextAction = "Vote on your partner's Tier 1a answers";
+              actionUrl = "/tier1a/reveal-bios.html";
+            } else if (currentStage === "tier1b" && matchData.tier1bAnswers && matchData.tier1bAnswers[partnerUID] && !matchData.tier1bVotes[userUID]) {
+              nextAction = "Vote on your partner's Tier 1b answers";
+              actionUrl = "/tier1b/index.html";
+            } else if (currentStage === "tier2" && matchData.tier2 && matchData.tier2[partnerUID] && !matchData.tier2[userUID]) {
+              nextAction = "Complete your Tier 2";
+              actionUrl = "/tier2/index.html";
+            } else if (currentStage === "tier3" && matchData.tier3Answers && matchData.tier3Answers[partnerUID] && !matchData.tier3Answers[userUID]) {
+              nextAction = "Complete your Tier 3 answers";
+              actionUrl = "/tier3/index.html";
+            }
+
+            const digestData = {
+              partnerName,
+              currentStage,
+              messagesExchanged,
+              tiersCompleted,
+              nextAction,
+              actionUrl,
+            };
+
+            const userName = userData.currentMatch.username || "friend";
+            const emailContent = getWeeklyDigestEmail(userName, digestData);
+
+            const msg = {
+              to: userData.email,
+              from: {
+                email: sendgridFrom,
+                name: "Woobie",
+              },
+              subject: emailContent.subject,
+              html: emailContent.html,
+            };
+
+            await safeSendEmail(msg, `weekly digest to ${userData.email}`);
+            emailsSent++;
+
+            // Track that we sent the digest
+            await db.ref(`users/${userUID}`).update({
+              lastWeeklyDigest: new Date().toISOString().split("T")[0],
+            });
+          } catch (error) {
+            logger.error(`Error sending weekly digest to user ${userUID}:`, error);
+            errors.push({userUID, error: error.message});
+          }
+        }
+
+        logger.info(`Weekly digest summary: ${emailsSent} sent, ${errors.length} errors`);
+
+        return {
+          success: true,
+          emailsSent,
+          errors: errors.length,
+        };
+      } catch (error) {
+        logger.error("Error in weekly digest function:", error);
+        throw error;
+      }
+    },
+);
 
 // Make sure there"s a single newline character at the very end of this file.

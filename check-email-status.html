@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Woobie - Check Email Status</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #33ff33;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .container {
+            border: 2px solid #33ff33;
+            padding: 2rem;
+        }
+        button {
+            background: #000;
+            color: #33ff33;
+            border: 2px solid #33ff33;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #33ff33;
+            color: #000;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #33ff33;
+            background: #111;
+        }
+        .error {
+            color: #ff3333;
+        }
+        .success {
+            color: #33ff33;
+        }
+        pre {
+            background: #1a1a1a;
+            padding: 10px;
+            overflow-x: auto;
+            color: #ffcc99;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Email Status Checker</h1>
+        <p>This tool checks the email delivery status for the currently logged-in user.</p>
+
+        <button onclick="checkEmailStatus()">Check My Email Status</button>
+
+        <div id="status" class="status" style="display: none;">
+            <h2>Status:</h2>
+            <pre id="result"></pre>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js';
+
+        // Your Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMN42XkaTMgQbG38gPWO_pWAk4RmH7sT4",
+            authDomain: "woobiedinobear.firebaseapp.com",
+            databaseURL: "https://woobiedinobear-default-rtdb.firebaseio.com",
+            projectId: "woobiedinobear",
+            storageBucket: "woobiedinobear.firebasestorage.app",
+            messagingSenderId: "664066667109",
+            appId: "1:664066667109:web:f5ef40c91a8cbdcc83e7cb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const functions = getFunctions(app);
+
+        window.checkEmailStatus = async function() {
+            const statusDiv = document.getElementById('status');
+            const resultPre = document.getElementById('result');
+
+            statusDiv.style.display = 'block';
+            resultPre.textContent = 'Loading...';
+
+            try {
+                const checkEmailStatus = httpsCallable(functions, 'checkEmailStatus');
+                const result = await checkEmailStatus();
+
+                resultPre.textContent = JSON.stringify(result.data, null, 2);
+                resultPre.className = 'success';
+            } catch (error) {
+                resultPre.textContent = `Error: ${error.message}\n\nPlease make sure you're logged in.`;
+                resultPre.className = 'error';
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                alert('Please log in first at https://woobie.app/auth/login.html');
+                window.location.href = 'https://woobie.app/auth/login.html';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -46,11 +46,6 @@
     const warning = document.getElementById('bio-warning');
     const button = document.getElementById('submit-bio');
     
-    // Initial check for localStorage items to provide early feedback if needed
-    if (!localStorage.getItem('woobieUsername') || !localStorage.getItem('woobieMatchID')) {
-      warning.textContent = "Missing critical session data. Please go back and restart the process if issues persist.";
-    }
-    
     input.addEventListener('input', () => {
       const words = input.value.trim().split(/\s+/).filter(Boolean);
       count.textContent = `${words.length} / 250 words`;
@@ -63,7 +58,7 @@
       }
     });
     
-    button.onclick = () => {
+    button.onclick = async () => {
       const text = input.value.trim();
       const words = text.split(/\s+/).filter(Boolean);
       const repeated = /(.)\1{20,}/.test(text);
@@ -71,27 +66,58 @@
         warning.textContent = 'Please shorten your bio and avoid repeated characters.';
         return;
       }
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          warning.textContent = "You're not logged in. Please log in again.";
-          return;
-        }
-        const matchID = localStorage.getItem('woobieMatchID');
+
+      const user = auth.currentUser;
+      if (!user) {
+        warning.textContent = "You're not logged in. Please log in again.";
+        return;
+      }
+
+      button.disabled = true;
+      warning.textContent = 'Submitting...';
+      warning.style.color = '#33ff33';
+
+      try {
+        // Get matchID from localStorage first, fallback to database
+        let matchID = localStorage.getItem('woobieMatchID');
+
         if (!matchID) {
-            warning.textContent = "Match ID is missing. Please restart the process.";
+          // Fetch from database
+          const { get } = await import('firebase/database');
+          const userSnap = await get(ref(db, `users/${user.uid}/currentMatch`));
+          const matchData = userSnap.val();
+
+          if (!matchData || !matchData.matchID) {
+            warning.textContent = "No match found. Please restart from the beginning.";
+            warning.style.color = '#ff6666';
+            button.disabled = false;
             return;
+          }
+
+          matchID = matchData.matchID;
+          localStorage.setItem('woobieMatchID', matchID);
+          if (matchData.username) {
+            localStorage.setItem('woobieUsername', matchData.username);
+          }
         }
+
         localStorage.setItem('woobieBio', text);
-        
+
         const bioRef = ref(db, `matches/${matchID}/bios/${user.uid}`);
         await set(bioRef, text);
-        
+
         const matchProgressRef = ref(db, `users/${user.uid}/currentMatch`);
         await update(matchProgressRef, {
           stage: 'tier1a'
         });
+
         window.location.href = '/tier1a/index.html';
-      });
+      } catch (err) {
+        console.error('Error submitting bio:', err);
+        warning.textContent = 'Error submitting bio. Please try again.';
+        warning.style.color = '#ff6666';
+        button.disabled = false;
+      }
     };
   </script>
   <script type="module" src="../shared/logout.js"></script>

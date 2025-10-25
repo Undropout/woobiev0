@@ -30,15 +30,38 @@ onAuthStateChanged(auth, (user) => {
   }
 
   const currentUserId = user.uid;
-  const matchID = localStorage.getItem('woobieMatchID');
-  const localWoobieUsername = localStorage.getItem('woobieUsername');
+  let matchID = localStorage.getItem('woobieMatchID');
+  let localWoobieUsername = localStorage.getItem('woobieUsername');
 
+  // Fallback to database if localStorage is empty
   if (!matchID || !localWoobieUsername) {
-    alert("Missing critical session data (Match ID or Woobie Name). Please restart.");
-    window.location.href = '/name-picker/index.html';
+    get(ref(db, `users/${currentUserId}/currentMatch`))
+      .then(snap => {
+        const matchData = snap.val();
+        if (!matchData || !matchData.matchID || !matchData.username) {
+          alert("No match found. Please restart.");
+          window.location.href = '/name-picker/index.html';
+          return;
+        }
+        matchID = matchData.matchID;
+        localWoobieUsername = matchData.username;
+        localStorage.setItem('woobieMatchID', matchID);
+        localStorage.setItem('woobieUsername', localWoobieUsername);
+
+        // Re-run the main logic with fetched data
+        initializeTier2(currentUserId, matchID, localWoobieUsername);
+      })
+      .catch(err => {
+        console.error("Error fetching match data:", err);
+        alert("Error loading session. Please try again.");
+      });
     return;
   }
 
+  initializeTier2(currentUserId, matchID, localWoobieUsername);
+});
+
+async function initializeTier2(currentUserId, matchID, localWoobieUsername) {
   console.log(`[Tier2 INIT] MatchID: ${matchID}, UserID: ${currentUserId}, WoobieName: ${localWoobieUsername}`);
 
   // Update user's current stage
@@ -49,11 +72,38 @@ onAuthStateChanged(auth, (user) => {
   const userAnswersRef = ref(db, `matches/${matchID}/tier2/${currentUserId}`);
   const allTier2AnswersRef = ref(db, `matches/${matchID}/tier2`);
   const tier2RewardsRef = ref(db, `matches/${matchID}/tier2Rewards`);
+  const draftRef = ref(db, `matches/${matchID}/tier2Drafts/${currentUserId}`);
 
-  // Load saved progress from localStorage
-  const stored = JSON.parse(localStorage.getItem('tier2Answers') || '[]');
-  answers = stored;
-  currentIndex = answers.length || 0;
+  // Check if user has already submitted answers
+  try {
+    const existingAnswersSnap = await get(userAnswersRef);
+    if (existingAnswersSnap.exists()) {
+      // User has already answered, redirect to send page
+      console.log("[Tier2] User has already submitted answers, redirecting to send page");
+      window.location.href = '/tier2/send.html';
+      return;
+    }
+  } catch (err) {
+    console.error("Error checking existing answers:", err);
+  }
+
+  // Load partial answers from database (survives logout and works cross-device)
+  try {
+    const draftSnap = await get(draftRef);
+    if (draftSnap.exists()) {
+      const draftData = draftSnap.val();
+      answers = draftData.answers || [];
+      currentIndex = draftData.currentIndex || 0;
+      console.log('[Tier2] Loaded partial draft from database:', {
+        answerCount: answers.length,
+        currentIndex: currentIndex
+      });
+    } else {
+      console.log('[Tier2] No draft found in database, starting fresh');
+    }
+  } catch (err) {
+    console.error('Error loading tier2 draft from database:', err);
+  }
 
   function updateQuestion(index) {
     if (document.getElementById('question-number')) {
@@ -68,22 +118,41 @@ onAuthStateChanged(auth, (user) => {
   }
 
   function saveProgress() {
-    localStorage.setItem('tier2Answers', JSON.stringify(answers));
+    const draft = {
+      answers: answers,
+      currentIndex: currentIndex,
+      lastSaved: Date.now()
+    };
+    // Save to database (survives logout and works cross-device)
+    set(draftRef, draft)
+      .then(() => {
+        console.log('[Tier2] Saved draft to database:', {
+          answerCount: answers.length,
+          currentIndex: currentIndex
+        });
+      })
+      .catch(err => {
+        console.error('[Tier2] Error saving draft to database:', err);
+      });
   }
 
   async function submitAnswers() {
     try {
       // Save answers under the user's UID with metadata
-      await set(userAnswersRef, { 
-        answers, 
+      await set(userAnswersRef, {
+        answers,
         woobieName: localWoobieUsername,
-        timestamp: Date.now() 
+        timestamp: Date.now()
       });
       console.log("Tier2 answers submitted successfully");
-      
+
+      // Clear the draft from database since it's now fully submitted
+      await set(draftRef, null);
+      console.log("Tier2 draft cleared from database");
+
       // Update stage
       await update(userMatchProgressRef, { stage: 'tier2-answers-submitted' });
-      
+
       checkIfBothFinished();
     } catch (err) {
       console.error("Error saving tier2 answers:", err);
@@ -153,4 +222,4 @@ onAuthStateChanged(auth, (user) => {
       window.location.href = '/tier2/reveal.html';
     }
   });
-});
+}

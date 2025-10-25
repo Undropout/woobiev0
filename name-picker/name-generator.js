@@ -25,6 +25,7 @@ onAuthStateChanged(auth, async (user) => {
       const userProfileSnap = await get(ref(db, `users/${currentUserId}`));
       if (userProfileSnap.exists()) {
         const userData = userProfileSnap.val();
+
         if (userData.username && userData.stage &&
             userData.stage !== 'name-picker' &&
             userData.stage !== 'collect_preferences'
@@ -79,6 +80,12 @@ let savedSets = JSON.parse(localStorage.getItem('woobieSavedSets') || '[]');
 let rerollCount = parseInt(localStorage.getItem('woobieRerollCount') || '0');
 const MAX_REROLLS = 9;
 let cooldown = false;
+
+console.log('[Name-Picker] Initial state:', {
+  rerollCount,
+  savedSetsLength: savedSets.length,
+  rerollsRemaining: MAX_REROLLS - rerollCount
+});
 
 if (confirmButton) confirmButton.disabled = true;
 if (rerollBtn) rerollBtn.disabled = true;
@@ -204,19 +211,31 @@ function renderNames(nameSetToRender = null, preserveModeOnClick = false) {
 
 if (rerollBtn) {
     rerollBtn.onclick = () => {
-        if (cooldown || rerollCount >= MAX_REROLLS) {
+        console.log('[Reroll Button] Clicked. Current rerollCount:', rerollCount, 'Max:', MAX_REROLLS);
+
+        // Check cooldown first
+        if (cooldown) {
+            console.log('[Reroll Button] BLOCKED - cooldown active');
+            return; // Just ignore the click, don't show an alert
+        }
+
+        // Check max rerolls
+        if (rerollCount >= MAX_REROLLS) {
+            console.log('[Reroll Button] BLOCKED - max rerolls reached');
             alert("You've reached the max rerolls. Pick from your saved ones or confirm a name.");
             return;
         }
+
         cooldown = true;
         setTimeout(() => { cooldown = false; }, 600);
         const newSet = generateNameSet();
-        if (savedSets.length >= 20) savedSets.shift(); 
+        if (savedSets.length >= 20) savedSets.shift();
         savedSets.push(newSet);
         rerollCount++;
+        console.log('[Reroll Button] Incremented rerollCount to:', rerollCount);
         updateStateStorage();
         renderNames(newSet);
-        selected = null; 
+        selected = null;
         if(selectedNameP) selectedNameP.innerHTML = "";
     };
 }
@@ -300,21 +319,29 @@ if (showSavedBtn) {
 if (modeButtons) {
     modeButtons.forEach((btn) => {
         btn.onclick = () => {
-            if (cooldown || rerollCount >= MAX_REROLLS) {
-                 alert("Max rerolls reached. Please choose from saved options or confirm a name.");
-                 return;
+            const newMode = btn.dataset.mode;
+
+            console.log('[Mode Switch] Clicked mode:', newMode, 'Current mode:', currentMode);
+
+            // If clicking the same mode, do nothing
+            if (newMode === currentMode) {
+                console.log('[Mode Switch] Same mode clicked, ignoring');
+                return;
             }
+
+            // Mode switching doesn't count as a reroll, just regenerate names with new style
             cooldown = true;
             setTimeout(() => { cooldown = false; }, 600);
 
-            currentMode = btn.dataset.mode;
+            currentMode = newMode;
             document.body.className = `${currentMode}-mode`;
             if(selectedNameP) selectedNameP.className = `woobie-${currentMode}`;
 
+            // Generate new set with the new mode but don't increment reroll counter
             const newSet = generateNameSet();
             if (savedSets.length >= 20) savedSets.shift();
             savedSets.push(newSet);
-            rerollCount++;
+            console.log('[Mode Switch] Generated new set. rerollCount still:', rerollCount, 'savedSets.length:', savedSets.length);
             updateStateStorage();
             renderNames(newSet);
             selected = null;

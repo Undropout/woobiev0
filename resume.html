@@ -20,18 +20,37 @@
   
     const stageToPath = {
       'name-picker': '/name-picker/index.html',
-      'preferences_pending': '/preferences.html', // Assuming you'll have this
+      'preferences_pending': '/preferences.html',
       'interests-dealbreakers': '/interests-dealbreakers/index.html',
       'bio': '/bio/index.html',
-      'waiting_in_queue': '/interests-dealbreakers/waiting.html', // IMPORTANT: Send back to waiting if still waiting
+      'waiting_in_queue': '/interests-dealbreakers/waiting.html',
+
+      // Tier 1a stages
       'tier1a': '/tier1a/index.html',
+      'tier1a-answers-submitted': '/tier1a/index.html', // Resume to same page, will skip to review
       'tier1a-bios-revealed': '/tier1a/reveal-bios.html',
+      'tier1a-vote-no': '/goodbye.html',
+
+      // Tier 1b stages
       'tier1b': '/tier1b/index.html',
+      'tier1b-complete': '/tier1b/index.html', // Resume to same page, will skip to review
+      'goodbye-tier1b': '/goodbye.html',
+
+      // Tier 2 stages
       'tier2': '/tier2/index.html',
+      'tier2-answers-submitted': '/tier2/send.html',
+      'tier2-send': '/tier2/send.html',
+      'tier2-reward-sent': '/tier2/send.html',
       'tier2-complete': '/tier2/send.html',
       'tier2-reveal': '/tier2/reveal.html',
+
+      // Tier 3 stages
       'tier3': '/tier3/index.html',
-      'chatroom': '/chat/index.html' // Assuming 'chat' or 'matched' could be the final stage
+      'goodbye-tier3': '/goodbye.html',
+
+      // Final stages
+      'chatroom': '/chat/index.html',
+      'goodbye': '/goodbye.html'
     };
   
     onAuthStateChanged(auth, async (user) => {
@@ -54,12 +73,15 @@
         const currentMatchData = userProfileData.currentMatch;
   
         if (!currentMatchData || !currentMatchData.matchID || !currentMatchData.username) {
+          // User has no active match - either new user or post-rejection
           const initialStage = userProfileData.stage || 'name-picker';
           const targetPath = stageToPath[initialStage] || '/name-picker/index.html';
-          status.textContent = `Welcome! Continuing to ${initialStage}...`;
+
+          status.textContent = `Welcome! Continuing to your next step...`;
           localStorage.setItem('woobieUID', user.uid);
           localStorage.removeItem('woobieMatchID'); // Clear stale data
           localStorage.removeItem('woobieUsername');
+          localStorage.removeItem('tier2Answers');
           setTimeout(() => window.location.href = targetPath, 2000);
           return;
         }
@@ -81,9 +103,9 @@
           // For now, we proceed, but this is where the PERMISSION_DENIED likely occurs if the match isn't fully formed.
   
           // Let's check if the match users node exists and contains current user before trying to read profiles from it
-          const matchUsersNodeSnap = await get(ref(db, `matches/<span class="math-inline">\{currentMatchData\.matchID\}/users/</span>{user.uid}`));
+          const matchUsersNodeSnap = await get(ref(db, `matches/${currentMatchData.matchID}/users/${user.uid}`));
           if (matchUsersNodeSnap.exists()) {
-               const matchProfileSnap = await get(ref(db, `matches/<span class="math-inline">\{currentMatchData\.matchID\}/profiles/</span>{user.uid}`));
+               const matchProfileSnap = await get(ref(db, `matches/${currentMatchData.matchID}/profiles/${user.uid}`));
               const matchProfile = matchProfileSnap.val();
               if (matchProfile) {
                   if (matchProfile.bio) localStorage.setItem('woobieBio', matchProfile.bio);
@@ -101,8 +123,8 @@
   
       } catch (err) {
         console.error("Error loading session from /resume.html:", err);
-        status.textContent = "Error loading session. Please try logging in again.";
-        // setTimeout(() => window.location.href = '/auth/login.html', 3000);
+        status.innerHTML = `Error loading session. <a href="/auth/login.html" style="color:#00ffff; text-decoration:underline;">Click here to log in again</a>.`;
+        status.style.color = '#ff6666';
       }
     });
   </script>

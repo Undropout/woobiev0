@@ -13,16 +13,26 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   const currentUserId = user.uid;
-  const username = localStorage.getItem('woobieUsername');
-  const matchID = localStorage.getItem('woobieMatchID');
-  const chatRef = dbRef(db, `matches/${matchID}/chat`);
-  const colorMode = localStorage.getItem('woobieMode') || 'normal';
 
-  if (!username || !matchID) {
+  // Always fetch from database - never rely on localStorage
+  const snap = await get(dbRef(db, `users/${currentUserId}/currentMatch`));
+  const matchData = snap.val();
+
+  console.log("[Chat] currentMatch data from database:", matchData);
+
+  if (!matchData || !matchData.matchID || !matchData.username) {
+    console.error("[Chat] Missing matchID or username in currentMatch:", matchData);
     alert("You must complete matching before entering chat.");
-    window.location.href = "/index.html";
+    window.location.href = "/name-picker/index.html";
     return;
   }
+
+  const matchID = matchData.matchID;
+  const username = matchData.username;
+  console.log("[Chat] Initialized with matchID:", matchID, "username:", username);
+
+  const chatRef = dbRef(db, `matches/${matchID}/chat`);
+  const colorMode = localStorage.getItem('woobieMode') || 'normal';
 
   const imageInput = document.getElementById('image-upload');
   const previewCanvas = document.getElementById('chat-preview-canvas');

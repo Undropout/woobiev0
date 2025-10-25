@@ -22,6 +22,17 @@
       <button class="woobie-button" id="vote-no">👎 No</button>
       <p id="vote-waiting" style="display:none;">Waiting for your match's vote...</p>
     </div>
+
+    <!-- Our Story Modal -->
+    <div id="our-story-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; overflow:auto; z-index:9999; padding:2rem;">
+      <button id="close-story" class="woobie-button" style="position:absolute; top:1rem; right:1rem;">❌ Close</button>
+      <h2 style="color:#33ff33">📚 Our Story So Far</h2>
+      <div id="story-content"></div>
+    </div>
+
+    <div style="margin-top: 2rem; text-align:center;">
+      <button id="our-story-button" class="woobie-button">📖 Our Story So Far</button>
+    </div>
   </div>
 
   <script type="module">
@@ -52,6 +63,16 @@
       const voteNoBtn = document.getElementById('vote-no');
       voteYesBtn.innerHTML = replaceEmojiWithMonochrome(voteYesBtn.textContent);
       voteNoBtn.innerHTML = replaceEmojiWithMonochrome(voteNoBtn.textContent);
+
+      // Process story modal elements
+      const closeStoryBtn = document.getElementById('close-story');
+      closeStoryBtn.innerHTML = replaceEmojiWithMonochrome(closeStoryBtn.textContent);
+
+      const storyModalTitle = document.querySelector('#our-story-modal h2');
+      storyModalTitle.innerHTML = replaceEmojiWithMonochrome(storyModalTitle.textContent);
+
+      const storyBtn = document.getElementById('our-story-button');
+      storyBtn.innerHTML = replaceEmojiWithMonochrome(storyBtn.textContent);
     });
 
     const logoutBtn = document.getElementById('logout-button');
@@ -180,16 +201,138 @@
       if (user) {
         currentUserUID = user.uid;
         currentUsername = localStorage.getItem('woobieUsername');
-        
+
         // Update user's current stage
         await update(ref(db, `users/${user.uid}/currentMatch`), { stage: 'tier2-reveal' });
-        
+
         // Load reward now that we have the user UID
         loadReward();
       } else {
         window.location.href = '/auth/login.html';
       }
     });
+
+    // Story modal functionality
+    const storyBtn = document.getElementById('our-story-button');
+    const closeBtn = document.getElementById('close-story');
+    const storyContent = document.getElementById('story-content');
+    const modal = document.getElementById('our-story-modal');
+
+    if (storyBtn && modal && storyContent && closeBtn) {
+      storyBtn.onclick = async () => {
+        modal.style.display = 'block';
+        storyContent.innerHTML = '<p>Loading...</p>';
+
+        try {
+          const user = auth.currentUser;
+          if (!user || !matchID) {
+            storyContent.innerHTML = '<p>Error loading story.</p>';
+            return;
+          }
+
+          const currentUserId = user.uid;
+
+          // Fetch tier1a, tier1b, and tier2 answers
+          const [tier1aSnap, tier1bSnap, tier2Snap] = await Promise.all([
+            get(ref(db, `matches/${matchID}/tier1a`)),
+            get(ref(db, `matches/${matchID}/tier1b`)),
+            get(ref(db, `matches/${matchID}/tier2`))
+          ]);
+
+          const tier1aData = tier1aSnap.val() || {};
+          const tier1bData = tier1bSnap.val() || {};
+          const tier2Data = tier2Snap.val() || {};
+
+          const partnerUID = Object.keys(tier2Data).find(uid => uid !== currentUserId);
+          if (!partnerUID) {
+            storyContent.innerHTML = '<p>Waiting for your match to complete their answers...</p>';
+            return;
+          }
+
+          const tier1aQuestions = [
+            "What's something you're proud of recently?",
+            "How would a friend describe you?",
+            "What does comfort look like to you?",
+            "When do you feel most alive?",
+            "What's a recent thought you can't shake?",
+            "How do you usually show someone you care?"
+          ];
+
+          const tier1bQuestions = [
+            "What's something you're working on improving?",
+            "How do you recharge after a stressful day?",
+            "What's a non-negotiable value in your life?",
+            "What do you want more of in your future?",
+            "What makes you feel heard?",
+            "What's a memory you'd share to explain who you are?"
+          ];
+
+          const tier2Questions = [
+            "What's a moment in your life that changed the way you see the world?",
+            "How do you show someone you care about them?",
+            "What's something people often misunderstand about you?",
+            "When do you feel most like yourself?",
+            "What's one thing you wish more people asked you about?",
+            "What makes you feel seen or understood?",
+            "What's a belief you held strongly that changed over time?",
+            "What's one thing you never get tired of talking about?",
+            "When have you felt the most brave?",
+            "What do you wish someone had told you earlier in life?",
+            "What kind of people do you feel safest around?",
+            "What's something you've forgiven yourself for?"
+          ];
+
+          let html = '<h3>📘 Tier 1a Answers</h3>';
+          const myTier1a = tier1aData[currentUserId]?.answers || [];
+          const theirTier1a = tier1aData[partnerUID]?.answers || [];
+
+          tier1aQuestions.forEach((q, i) => {
+            const myAnswer = Array.isArray(myTier1a) ? myTier1a[i]?.value || myTier1a[i] : myTier1a[i];
+            const theirAnswer = Array.isArray(theirTier1a) ? theirTier1a[i]?.value || theirTier1a[i] : theirTier1a[i];
+            html += `
+              <details><summary><strong>${q}</strong></summary>
+              <p><strong>You:</strong> ${myAnswer || '<em>No answer</em>'}</p>
+              <p><strong>Your Match:</strong> ${theirAnswer || '<em>No answer</em>'}</p>
+              </details>`;
+          });
+
+          html += '<h3>📘 Tier 1b Answers</h3>';
+          const myTier1b = tier1bData[currentUserId]?.answers || [];
+          const theirTier1b = tier1bData[partnerUID]?.answers || [];
+
+          tier1bQuestions.forEach((q, i) => {
+            const myAnswer = myTier1b[i]?.value || myTier1b[i] || '<em>No answer</em>';
+            const theirAnswer = theirTier1b[i]?.value || theirTier1b[i] || '<em>No answer</em>';
+            html += `
+              <details><summary><strong>${q}</strong></summary>
+              <p><strong>You:</strong> ${myAnswer}</p>
+              <p><strong>Your Match:</strong> ${theirAnswer}</p>
+              </details>`;
+          });
+
+          html += '<h3>📘 Tier 2 Answers</h3>';
+          const myTier2 = tier2Data[currentUserId]?.answers || [];
+          const theirTier2 = tier2Data[partnerUID]?.answers || [];
+
+          tier2Questions.forEach((q, i) => {
+            html += `
+              <details><summary><strong>${q}</strong></summary>
+              <p><strong>You:</strong> ${myTier2[i] || '<em>No answer</em>'}</p>
+              <p><strong>Your Match:</strong> ${theirTier2[i] || '<em>No answer</em>'}</p>
+              </details>`;
+          });
+
+          storyContent.innerHTML = replaceEmojiWithMonochrome(html);
+        } catch (err) {
+          storyContent.innerHTML = '<p style="color:red;">Error loading story.</p>';
+          console.error(err);
+        }
+      };
+
+      closeBtn.onclick = () => {
+        modal.style.display = 'none';
+      };
+    }
   </script>
 </body>
 </html>

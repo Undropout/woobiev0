@@ -115,17 +115,12 @@
     let localWoobieMode = null;
     let localWoobieEmoji = null;
 
-    // CRITICAL: Clear any existing content first to prevent duplicates
-    // This runs immediately when script loads
-    console.log('Clearing containers...');
+    // Clear containers to ensure clean slate
     interestContainer.innerHTML = '';
     dealbreakerContainer.innerHTML = '';
-    console.log('Interest container empty:', interestContainer.children.length === 0);
-    console.log('Dealbreaker container empty:', dealbreakerContainer.children.length === 0);
 
     // Toggle selection function
     function toggleSelect(button, currentSet, max) {
-      console.log('Toggle called for:', button.textContent, 'Currently has selected:', button.classList.contains('selected'));
       const label = button.textContent;
       if (currentSet.has(label)) {
         currentSet.delete(label);

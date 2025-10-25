@@ -10,7 +10,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 class DailyNudgeEmailService {
   constructor() {
-    this.fromEmail = "hello@woobie.app"; // Your verified domain
+    this.fromEmail = process.env.SENDGRID_FROM_EMAIL || "friends@woobie.fun"; // Your verified domain
     this.fromName = "Woobie";
     this.baseUrl = "https://woobie.app"; // Your domain
   }
