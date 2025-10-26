@@ -1,23 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Welcome to Woobie</title>
-  <link rel="stylesheet" crossorigin href="/woobiev0/assets/index-Bjqf8CUz.css">
+  <script type="module" crossorigin src="/assets/main-BA-UStxf.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/firebase-config-DqIMhm9h.js">
+  <link rel="modulepreload" crossorigin href="/assets/logout-C5vuDOMp.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-DdkmcSxD.css">
 </head>
 <body>
   <div class="container">
     <h1>Welcome to Woobie 💬</h1>
     <p>Your journey to meaningful connection starts here.</p>
     <button id="start-button" class="woobie-button">Start Now ➡️</button>
-  </div>
 
+    <!-- Log out button will be visible only when logged in -->
+    <button id="logout-button" class="woobie-button" style="margin-top: 1rem;">🚪 Log out</button>
+  </div>
+
   <script>
     document.getElementById('start-button').onclick = () => {
-      // Clear local storage to reset any prior session
-      localStorage.clear();
-      window.location.href = './name-picker/index.html';
+      window.location.href = './auth/login.html';
     };
   </script>
 </body>

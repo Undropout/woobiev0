@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Our Story</title>
+  <style>
+    details {
+      margin-bottom: 1rem;
+      border: 1px solid #33ff33;
+      border-radius: 5px;
+      padding: 0.5rem;
+      background-color: #000;
+      color: #fff;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: bold;
+      color: #33ff33;
+    }
+    summary::-webkit-details-marker {
+      display: none;
+    }
+    details[open] summary::after {
+      content: "▲";
+      float: right;
+    }
+    details summary::after {
+      content: "▼";
+      float: right;
+    }
+    p {
+      margin: 0.25rem 0 0.5rem;
+    }
+    img.greyscale {
+      image-rendering: pixelated;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 150px;
+      filter: grayscale(100%) contrast(150%) saturate(0%);
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/history-CazlbEm_.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/firebase-config-DqIMhm9h.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-DdkmcSxD.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📖 Our Story</h1>
+    <div id="timeline"></div>
+  </div>
+
+</body>
+</html>

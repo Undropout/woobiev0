@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pick Your Woobie Name</title>
+  <script type="module" crossorigin src="/assets/namePicker-DFLFvEGQ.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/firebase-config-DqIMhm9h.js">
+  <link rel="modulepreload" crossorigin href="/assets/logout-C5vuDOMp.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-DdkmcSxD.css">
+</head>
+<body class="normal-mode">
+  <div class="container">
+    <h1>🎲 Pick Your Woobie Name 🎲</h1>
+    <div id="mode-buttons">
+      <button data-mode="normal" class="woobie-button">Normal</button>
+      <button data-mode="prismatic" class="woobie-button premium">Prismatic ✨</button>
+      <button data-mode="neon" class="woobie-button premium">Neon 💡</button>
+      <button data-mode="cosmic" class="woobie-button premium">Cosmic 🌌</button>
+    </div>
+    <div id="name-options" class="option-grid"></div>
+    <button id="reroll" class="woobie-button">🎰 Reroll 🎰</button>
+    <p id="selected-name"></p>
+    <button id="confirm" class="woobie-button">✅ This is me</button>
+
+    <!-- Primary Action: Normal Matching -->
+    <div id="primary-action" style="display:none; margin-top: 2rem; text-align:center;">
+      <button id="skip-referral-btn" class="woobie-button" style="font-size:1.2rem; padding:1rem 2rem;">➡️ Find My Woobie Friend!</button>
+    </div>
+
+    <!-- Secondary Option: Referral Code Section -->
+    <div id="referral-section" style="display:none; margin-top: 3rem; padding: 1.5rem; border: 1px dashed #666; border-radius: 5px; background: rgba(0, 0, 0, 0.3);">
+      <details style="cursor:pointer;">
+        <summary style="color: #999; font-size:0.95rem; list-style-position: inside;">💝 Or invite a specific friend/partner</summary>
+
+        <div id="referral-choice" style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; margin-top:1.5rem;">
+          <button id="generate-code-btn" class="woobie-button">🎫 Generate Invite Code</button>
+          <button id="enter-code-btn" class="woobie-button">🔑 Enter Friend's Code</button>
+        </div>
+
+        <!-- Generate Code View -->
+        <div id="code-generated-view" style="display:none; text-align:center; margin-top:1rem;">
+          <p style="color:#33ff33;">Your invite code:</p>
+          <div id="generated-code" style="font-size:1.5rem; font-weight:bold; color:#00ffff; margin:1rem 0; padding:1rem; background:#000; border:1px solid #00ffff; border-radius:5px;"></div>
+          <p style="color:#999; font-size:0.9rem;">Share this code with your partner or friend.<br>Expires in 1 week.</p>
+          <button id="copy-code-btn" class="woobie-button">📋 Copy Code</button>
+          <button id="proceed-with-code-btn" class="woobie-button">✅ Continue to Queue</button>
+        </div>
+
+        <!-- Enter Code View -->
+        <div id="code-entry-view" style="display:none; text-align:center; margin-top:1rem;">
+          <p style="color:#33ff33;">Enter your friend's invite code:</p>
+          <input type="text" id="referral-code-input" placeholder="purple-cosmic-dolphin" style="width:100%; max-width:400px; padding:0.8rem; margin:1rem 0; background:#000; border:1px solid #33ff33; color:#33ff33; font-size:1rem; text-align:center; border-radius:5px;" />
+          <div id="code-validation-msg" style="margin:0.5rem 0; min-height:1.5rem;"></div>
+          <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+            <button id="validate-code-btn" class="woobie-button">🔍 Validate Code</button>
+            <button id="back-to-choice-btn" class="woobie-button" style="background:#222; border-color:#666;">← Back</button>
+          </div>
+        </div>
+
+        <!-- Code Confirmed View -->
+        <div id="code-confirmed-view" style="display:none; text-align:center; margin-top:1rem;">
+          <p style="color:#00ffff; font-size:1.2rem;">✅ Code Valid!</p>
+          <div id="match-preview" style="margin:1rem 0; padding:1rem; background:#000; border:1px solid #33ff33; border-radius:5px;"></div>
+          <p style="color:#999;">You'll be matched together and go through all tiers.</p>
+          <button id="confirm-referral-match-btn" class="woobie-button">💝 Confirm Match</button>
+          <button id="cancel-referral-btn" class="woobie-button" style="background:#222; border-color:#666;">Cancel</button>
+        </div>
+      </details>
+    </div>
+
+    <button id="logout-button" class="woobie-button" style="margin-top: 1rem;">🚪 Log out</button>
+  </div>
+
+  <script>
+    // EXACT same function as your working chat version
+    function replaceEmojiWithMonochrome(text) {
+      return text.replace(/(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/gu, (match) => {
+        return `<span class="woobie-emoji">${match}</span>`;
+      });
+    }
+
+    // Apply to static elements (like chat does)
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        // Process static buttons first
+        const staticElements = [
+          document.querySelector('h1'),
+          document.getElementById('reroll'),
+          document.getElementById('confirm'), 
+          document.getElementById('logout-button'),
+          ...document.querySelectorAll('#mode-buttons button')
+        ];
+        
+        staticElements.forEach(element => {
+          if (element && element.textContent) {
+            element.innerHTML = replaceEmojiWithMonochrome(element.textContent);
+          }
+        });
+        
+        console.log('✅ Static emoji processing complete');
+      }, 200);
+    });
+
+    // Watch for dynamic name buttons (like the MutationObserver in chat)
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('name-button')) {
+            const strongTag = node.querySelector('strong');
+            if (strongTag && strongTag.textContent) {
+              strongTag.innerHTML = replaceEmojiWithMonochrome(strongTag.textContent);
+            }
+          }
+        });
+      });
+    });
+
+    // Start observing when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      const nameOptions = document.getElementById('name-options');
+      if (nameOptions) {
+        observer.observe(nameOptions, { childList: true, subtree: true });
+      }
+    });
+  </script>
+
+</body>
+</html>
