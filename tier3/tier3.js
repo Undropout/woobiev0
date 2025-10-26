@@ -10,7 +10,39 @@ function replaceEmojiWithMonochrome(text) {
   });
 }
 
-const questions = [
+const questionBank = [
+  "What makes you feel close to someone?",
+  "What does emotional intimacy look like to you?",
+  "What's a friendship you're proud of?",
+  "Who in your life do you wish you talked to more?",
+  "How do you want to be remembered?",
+  "What do you hope people say about you when you're not around?",
+  "What does 'home' mean to you?",
+  "When do you feel most loved?",
+  "What's a romantic gesture you secretly love?",
+  "What's your love language, and how do you express it?",
+  "How do you know when you're falling for someone?",
+  "Have you ever had a crush that changed how you see people?",
+  "What's something you've learned from past relationships?",
+  "Do you believe in soulmates?",
+  "What does a healthy relationship look like to you?",
+  "What's a photo you wish you had taken?",
+  "Do you have any little rituals that bring you peace?",
+  "If you could guarantee one thing for your future, what would it be?",
+  "What's a compliment you've always wanted to receive?",
+  "What's something you already find yourself appreciating about me?",
+  "Finish this sentence: 'I wish I had someone with whom I could share...'",
+  "Share an embarrassing or awkward moment in your life that you'd feel comfortable sharing with a friend.",
+  "When did you last cry—alone or with someone else—and how do you feel about sharing it?",
+  "If your home were on fire, and your loved ones and pets were safe, what's one thing you'd try to save, and why?",
+  "Is there anything you consider too serious to joke about?",
+  "If you couldn't communicate with anyone ever again, what's one thing you'd deeply regret never having said?",
+  "Based on our conversation so far, what's something you like or appreciate about me? (Be honest!)",
+  "Complete this sentence three times: 'We both seem to be...'",
+  "If we became close friends, what's something important you'd want me to understand about you?",
+  "What's one thing you'd genuinely enjoy doing together if we were friends?",
+  "What's a quality you admire about how we've interacted with each other so far?",
+  "Share a personal problem you feel comfortable asking me advice about—and tell me how you'd like me to respond (advice, reflection, support?).",
   "What's a belief you held strongly that changed over time?",
   "What's one thing you never get tired of talking about?",
   "When have you felt the most brave?",
@@ -24,6 +56,8 @@ const questions = [
   "What's a truth you've learned the hard way?",
   "What's something you've forgiven yourself for?"
 ];
+
+let questions = [];
 
 // Wait for authentication before initializing
 onAuthStateChanged(auth, async (user) => {
@@ -51,6 +85,62 @@ onAuthStateChanged(auth, async (user) => {
     username = matchData.username;
     localStorage.setItem('woobieMatchID', matchID);
     localStorage.setItem('woobieUsername', username);
+  }
+
+  // Fisher-Yates shuffle algorithm for true randomization
+  function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // Load or generate randomized questions for this match
+  const tier3QuestionsRef = ref(db, `matches/${matchID}/tier3Questions`);
+  const matchUsersRef = ref(db, `matches/${matchID}/users`);
+
+  try {
+    const questionsSnap = await get(tier3QuestionsRef);
+    if (questionsSnap.exists()) {
+      questions = questionsSnap.val();
+      console.log("Loaded tier3 questions from database");
+    } else {
+      // Determine which user should generate questions (lexicographically first UID)
+      const usersSnap = await get(matchUsersRef);
+      const userUIDs = Object.keys(usersSnap.val() || {});
+      const shouldGenerate = userUIDs.length > 0 && userUIDs.sort()[0] === currentUserId;
+
+      if (shouldGenerate) {
+        // This user is responsible for generating questions
+        const shuffled = shuffleArray(questionBank);
+        questions = shuffled.slice(0, 12);
+        await set(tier3QuestionsRef, questions);
+        console.log("Generated new randomized questions for tier3:", matchID);
+      } else {
+        // Wait for the other user to generate questions
+        console.log("Waiting for partner to generate tier3 questions...");
+        let attempts = 0;
+        while (attempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const retrySnap = await get(tier3QuestionsRef);
+          if (retrySnap.exists()) {
+            questions = retrySnap.val();
+            console.log("Loaded tier3 questions after waiting");
+            break;
+          }
+          attempts++;
+        }
+        if (questions.length === 0) {
+          console.warn("Timeout waiting for questions, using fallback");
+          questions = questionBank.slice(0, 12);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error loading tier3 questions:", error);
+    questions = questionBank.slice(0, 12);
   }
 
   // Use UID for database references

@@ -3,20 +3,30 @@ import { db, auth } from '../shared/firebase-config.js';
 import { ref, set, get, onValue, update, off } from 'firebase/database';
 import { onAuthStateChanged } from 'firebase/auth';
 
-const questions = [
-  "What's a moment in your life that changed the way you see the world?",
-  "How do you show someone you care about them?",
-  "What's something people often misunderstand about you?",
-  "When do you feel most like yourself?",
-  "What's one thing you wish more people asked you about?",
-  "What makes you feel seen or understood?",
-  "What's a belief you held strongly that changed over time?",
-  "What's one thing you never get tired of talking about?",
-  "When have you felt the most brave?",
-  "What do you wish someone had told you earlier in life?",
-  "What kind of people do you feel safest around?",
-  "What's something you've forgiven yourself for?"
+const questionBank = [
+  "What trait do you admire most in someone you love?",
+  "What's the most spontaneous thing you've ever done?",
+  "What's a small thing that always makes you smile?",
+  "If you could relive one day, which would it be?",
+  "What's something you're still healing from?",
+  "What's a compliment you've never forgotten?",
+  "What do you think people notice first about you?",
+  "What's a fear you've overcome?",
+  "What's one thing you'd never compromise on?",
+  "How do you define success?",
+  "What's something you're looking forward to?",
+  "What's a tradition you hope to continue or start?",
+  "What do you value most in a friendship?",
+  "What's a moment you're proud of but don't talk about often?",
+  "What's something that feels like home to you?",
+  "What's a risk you're glad you took?",
+  "What's one thing you wish you could tell your younger self?",
+  "What kind of legacy do you want to leave?",
+  "What's something that always grounds you when life feels chaotic?",
+  "What's a dream you've had for as long as you can remember?"
 ];
+
+let questions = [];
 
 let answers = [];
 let currentIndex = 0;
@@ -63,6 +73,62 @@ onAuthStateChanged(auth, (user) => {
 
 async function initializeTier2(currentUserId, matchID, localWoobieUsername) {
   console.log(`[Tier2 INIT] MatchID: ${matchID}, UserID: ${currentUserId}, WoobieName: ${localWoobieUsername}`);
+
+  // Fisher-Yates shuffle algorithm for true randomization
+  function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // Load or generate randomized questions for this match
+  const tier2QuestionsRef = ref(db, `matches/${matchID}/tier2Questions`);
+  const matchUsersRef = ref(db, `matches/${matchID}/users`);
+
+  try {
+    const questionsSnap = await get(tier2QuestionsRef);
+    if (questionsSnap.exists()) {
+      questions = questionsSnap.val();
+      console.log("Loaded tier2 questions from database");
+    } else {
+      // Determine which user should generate questions (lexicographically first UID)
+      const usersSnap = await get(matchUsersRef);
+      const userUIDs = Object.keys(usersSnap.val() || {});
+      const shouldGenerate = userUIDs.length > 0 && userUIDs.sort()[0] === currentUserId;
+
+      if (shouldGenerate) {
+        // This user is responsible for generating questions
+        const shuffled = shuffleArray(questionBank);
+        questions = shuffled.slice(0, 12);
+        await set(tier2QuestionsRef, questions);
+        console.log("Generated new randomized questions for tier2:", matchID);
+      } else {
+        // Wait for the other user to generate questions
+        console.log("Waiting for partner to generate tier2 questions...");
+        let attempts = 0;
+        while (attempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const retrySnap = await get(tier2QuestionsRef);
+          if (retrySnap.exists()) {
+            questions = retrySnap.val();
+            console.log("Loaded tier2 questions after waiting");
+            break;
+          }
+          attempts++;
+        }
+        if (questions.length === 0) {
+          console.warn("Timeout waiting for questions, using fallback");
+          questions = questionBank.slice(0, 12);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error loading tier2 questions:", error);
+    questions = questionBank.slice(0, 12);
+  }
 
   // Update user's current stage
   const userMatchProgressRef = ref(db, `users/${currentUserId}/currentMatch`);

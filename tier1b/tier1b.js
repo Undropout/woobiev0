@@ -10,14 +10,42 @@ function replaceEmojiWithMonochrome(text) {
   });
 }
 
-const questions = [
-  "What's something you're working on improving?",
-  "How do you recharge after a stressful day?",
-  "What's a non-negotiable value in your life?",
-  "What do you want more of in your future?",
-  "What makes you feel heard?",
-  "What's a memory you'd share to explain who you are?"
+// Question bank for Tier 1 (same as tier1a - we'll use questions 6-11)
+const questionBank = [
+  "If you could invite anyone in history to dinner, who would you choose and why?",
+  "Would you ever want to be famous? If yes, what would you want to be known for?",
+  "Do you rehearse conversations before you have them? Why or why not?",
+  "Describe your 'perfect' day.",
+  "When did you last sing to yourself or to someone else?",
+  "If you could have one extraordinary skill or quality tomorrow, what would it be and why?",
+  "What's a secret hunch you have about your future?",
+  "What are you deeply grateful for right now?",
+  "If you could change something about your upbringing, what would it be?",
+  "Share a memory from your childhood that shaped who you are today.",
+  "What's something important about you that people often misunderstand, that you'd like a future friend to know?",
+  "If you could live to age 90, would you rather retain the mind or body of a 30-year-old for your final 60 years?",
+  "If you could live in any fictional world, which would you choose and why?",
+  "If you could instantly master a musical instrument, which would it be?",
+  "If animals could talk, which one do you think you'd get along with best?",
+  "What era in history do you feel oddly nostalgic for?",
+  "What makes you feel seen?",
+  "What's the most generous thing someone has done for you?",
+  "How do you show someone you care?",
+  "What's your go-to movie or show when you need a pick-me-up?",
+  "Do you prefer sunrise or sunset?",
+  "What do you do when you want to feel cozy?",
+  "Do you believe people are inherently good?",
+  "If happiness were a place, what would it look like?",
+  "What do you think is humanity's greatest strength?",
+  "What's your dream vacation destination, and what would you do there?",
+  "What's your most chaotic or impulsive story?",
+  "What's a strength of yours that others overlook?",
+  "Do you forgive yourself easily?",
+  "What kind of environments help you thrive?",
+  "What helps you bounce back after a hard day?"
 ];
+
+let questions = [];
 
 let localAnswersDraft = [];
 let currentIndex = 0;
@@ -79,6 +107,23 @@ onAuthStateChanged(auth, (user) => {
 
 async function initializeTier1b(currentUserId, matchID, localWoobieUsername) {
   console.log(`[Tier1b INIT] MatchID: ${matchID}, UserID: ${currentUserId}, WoobieName: ${localWoobieUsername}`);
+
+  // Load questions from tier1Questions (questions 6-11 for tier1b)
+  const tier1QuestionsRef = ref(db, `matches/${matchID}/tier1Questions`);
+  try {
+    const questionsSnap = await get(tier1QuestionsRef);
+    if (questionsSnap.exists()) {
+      const allTier1Questions = questionsSnap.val();
+      questions = allTier1Questions.slice(6, 12);
+      console.log("Loaded tier1b questions from database");
+    } else {
+      console.warn("No tier1 questions found, using fallback");
+      questions = questionBank.slice(6, 12);
+    }
+  } catch (error) {
+    console.error("Error loading tier1b questions:", error);
+    questions = questionBank.slice(6, 12);
+  }
 
   const userMatchProgressRef = ref(db, `users/${currentUserId}/currentMatch`);
   update(userMatchProgressRef, { stage: 'tier1b' });

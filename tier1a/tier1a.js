@@ -11,14 +11,42 @@ if (!username || !matchID) {
   window.location.href = '/auth/login.html';
 }
 
-const questions = [
-  "What's something you're proud of recently?",
-  "How would a friend describe you?",
-  "What does comfort look like to you?",
-  "When do you feel most alive?",
-  "What's a recent thought you can't shake?",
-  "How do you usually show someone you care?"
+// Question bank for Tier 1
+const questionBank = [
+  "If you could invite anyone in history to dinner, who would you choose and why?",
+  "Would you ever want to be famous? If yes, what would you want to be known for?",
+  "Do you rehearse conversations before you have them? Why or why not?",
+  "Describe your 'perfect' day.",
+  "When did you last sing to yourself or to someone else?",
+  "If you could have one extraordinary skill or quality tomorrow, what would it be and why?",
+  "What's a secret hunch you have about your future?",
+  "What are you deeply grateful for right now?",
+  "If you could change something about your upbringing, what would it be?",
+  "Share a memory from your childhood that shaped who you are today.",
+  "What's something important about you that people often misunderstand, that you'd like a future friend to know?",
+  "If you could live to age 90, would you rather retain the mind or body of a 30-year-old for your final 60 years?",
+  "If you could live in any fictional world, which would you choose and why?",
+  "If you could instantly master a musical instrument, which would it be?",
+  "If animals could talk, which one do you think you'd get along with best?",
+  "What era in history do you feel oddly nostalgic for?",
+  "What makes you feel seen?",
+  "What's the most generous thing someone has done for you?",
+  "How do you show someone you care?",
+  "What's your go-to movie or show when you need a pick-me-up?",
+  "Do you prefer sunrise or sunset?",
+  "What do you do when you want to feel cozy?",
+  "Do you believe people are inherently good?",
+  "If happiness were a place, what would it look like?",
+  "What do you think is humanity's greatest strength?",
+  "What's your dream vacation destination, and what would you do there?",
+  "What's your most chaotic or impulsive story?",
+  "What's a strength of yours that others overlook?",
+  "Do you forgive yourself easily?",
+  "What kind of environments help you thrive?",
+  "What helps you bounce back after a hard day?"
 ];
+
+let questions = [];
 
 let answers = [];
 let currentIndex = 0;
@@ -131,6 +159,67 @@ onAuthStateChanged(auth, (user) => {
 });
 
 async function initializeTier1a(currentUserId, currentMatchID, localWoobieUsername) {
+
+  // Fisher-Yates shuffle algorithm for true randomization
+  function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // Load or generate randomized questions for this match
+  // We generate 12 questions total: first 6 for tier1a, next 6 for tier1b
+  const tier1QuestionsRef = ref(db, `matches/${currentMatchID}/tier1Questions`);
+  const matchUsersRef = ref(db, `matches/${currentMatchID}/users`);
+
+  try {
+    const questionsSnap = await get(tier1QuestionsRef);
+    if (questionsSnap.exists()) {
+      // Questions already exist for this match - use first 6 for tier1a
+      const allTier1Questions = questionsSnap.val();
+      questions = allTier1Questions.slice(0, 6);
+    } else {
+      // Determine which user should generate questions (lexicographically first UID)
+      const usersSnap = await get(matchUsersRef);
+      const userUIDs = Object.keys(usersSnap.val() || {});
+      const shouldGenerate = userUIDs.length > 0 && userUIDs.sort()[0] === currentUserId;
+
+      if (shouldGenerate) {
+        // This user is responsible for generating questions
+        const shuffled = shuffleArray(questionBank);
+        const allTier1Questions = shuffled.slice(0, 12);
+        await set(tier1QuestionsRef, allTier1Questions);
+        questions = allTier1Questions.slice(0, 6);
+        console.log("Generated new randomized questions for match:", currentMatchID);
+      } else {
+        // Wait for the other user to generate questions
+        console.log("Waiting for partner to generate tier1 questions...");
+        let attempts = 0;
+        while (attempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const retrySnap = await get(tier1QuestionsRef);
+          if (retrySnap.exists()) {
+            const allTier1Questions = retrySnap.val();
+            questions = allTier1Questions.slice(0, 6);
+            console.log("Loaded tier1 questions after waiting");
+            break;
+          }
+          attempts++;
+        }
+        if (questions.length === 0) {
+          console.warn("Timeout waiting for questions, using fallback");
+          questions = questionBank.slice(0, 6);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error loading questions:", error);
+    // Fallback to first 6 questions if there's an error
+    questions = questionBank.slice(0, 6);
+  }
 
   // Database references using UID as keys
   const userAnswersRef = ref(db, `matches/${currentMatchID}/tier1a/${currentUserId}`);
