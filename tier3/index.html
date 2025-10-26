@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tier 3: Final Questions</title>
+  <script type="module" crossorigin src="/assets/tier3-CJAyUosB.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/firebase-config-C0024qU1.js">
+  <link rel="modulepreload" crossorigin href="/assets/preload-helper-BdmUneiq.js">
+  <link rel="modulepreload" crossorigin href="/assets/logout-q5yztgx1.js">
+  <link rel="stylesheet" crossorigin href="/assets/style-DdkmcSxD.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Tier 3: Let's share and be vulnerable 🌊</h1>
+
+    <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
+
+    <!-- Question and answer flow -->
+    <div id="question-block">
+      <p id="question-number"></p>
+      <p id="question-text"></p>
+      <textarea id="answer" rows="5" placeholder="Type your answer here..."></textarea>
+      <button id="submit-btn" class="woobie-button">Next</button>
+    </div>
+
+    <!-- Waiting on match -->
+    <div id="completion-message" style="display:none;">
+      <h2>Waiting for your match to finish...</h2>
+      <p>You'll exchange answers once both of you complete Tier 3.</p>
+    </div>
+
+    <!-- Review section -->
+    <div id="review-section" style="display:none;"></div>
+
+    <!-- Voting section -->
+    <div id="vote-section" style="display:none;">
+      <h2>Do you want to enter the chatroom?</h2>
+      <button id="vote-yes" class="woobie-button">👍 Yes</button>
+      <button id="vote-no" class="woobie-button">👎 No</button>
+      <p id="vote-waiting" style="display:none;">Waiting for your match's vote...</p>
+    </div>
+
+    <!-- Our Story Modal -->
+    <div id="our-story-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; overflow:auto; z-index:9999; padding:2rem;">
+      <button id="close-story" class="woobie-button" style="position:absolute; top:1rem; right:1rem;">❌ Close</button>
+      <h2 style="color:#33ff33">📚 Our Story So Far</h2>
+      <div id="story-content"></div>
+    </div>
+
+    <div style="margin-top: 2rem; text-align:center;">
+      <button id="our-story-button" class="woobie-button">📖 Our Story So Far</button>
+    </div>
+  </div>
+
+</body>
+</html>
