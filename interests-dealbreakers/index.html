@@ -295,9 +295,14 @@
         }
         localStorage.setItem('woobieMatchID', potentialMatchID);
 
+        // Check if user has a referral code
+        const userSnap = await get(ref(db, `users/${currentUserId}`));
+        const userData = userSnap.val();
+        const hasReferralCode = userData && userData.referralCodeID && userData.referralMode;
+
         // Add to queue with all necessary data
         const queueEntryRef = ref(db, `queue/${currentUserId}`);
-        await set(queueEntryRef, {
+        const queueData = {
           userUID: currentUserId,
           woobieName: localWoobieUsername,
           mode: localWoobieMode,
@@ -308,7 +313,20 @@
           dealbreakers: dealbreakersArray,
           potentialMatchIDForUser: potentialMatchID,
           timestamp: serverTimestamp()
-        });
+        };
+
+        // Add referral code info if exists
+        if (hasReferralCode) {
+          queueData.referralCodeID = userData.referralCodeID;
+          queueData.referralMode = userData.referralMode;
+          if (userData.referralMode === 'waiting') {
+            queueData.waitingForReferral = true;
+          } else if (userData.referralMode === 'claiming') {
+            queueData.claimingReferral = true;
+          }
+        }
+
+        await set(queueEntryRef, queueData);
 
         // Update user's currentMatch with queue status
         const userCurrentMatchRef = ref(db, `users/${currentUserId}/currentMatch`);

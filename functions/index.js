@@ -313,6 +313,106 @@ exports.advancedMatchmaker = onValueCreated(
           },
       );
 
+      // Check if this is a referral code match
+      if (newQueuedUserData.claimingReferral && newQueuedUserData.referralCodeID) {
+        logger.info(`User ${newQueuedUserUID} is claiming referral code: ${newQueuedUserData.referralCodeID}`);
+
+        try {
+          // Get the referral code data
+          const codeRef = admin.database().ref(`referralCodes/${newQueuedUserData.referralCodeID}`);
+          const codeSnap = await codeRef.once("value");
+          const codeData = codeSnap.val();
+
+          if (!codeData || codeData.used) {
+            logger.warn(`Referral code ${newQueuedUserData.referralCodeID} is invalid or already used`);
+            return null;
+          }
+
+          const creatorUID = codeData.createdBy;
+
+          // Check if the code creator is in the queue waiting
+          const creatorQueueRef = admin.database().ref(`queue/${creatorUID}`);
+          const creatorQueueSnap = await creatorQueueRef.once("value");
+
+          if (!creatorQueueSnap.exists()) {
+            logger.warn(`Code creator ${creatorUID} is not in queue for code ${newQueuedUserData.referralCodeID}`);
+            return null;
+          }
+
+          const creatorData = creatorQueueSnap.val();
+
+          // Match them directly!
+          const matchID = newQueuedUserData.potentialMatchIDForUser; // Use claimer's matchID
+
+          logger.info(`Creating referral match: ${creatorUID} + ${newQueuedUserUID} = ${matchID}`);
+
+          // Create match
+          const matchRef = admin.database().ref(`matches/${matchID}`);
+          await matchRef.update({
+            users: {
+              [creatorUID]: creatorData.woobieName,
+              [newQueuedUserUID]: newQueuedUserData.woobieName,
+            },
+            modes: {
+              [creatorUID]: {mode: creatorData.mode},
+              [newQueuedUserUID]: {mode: newQueuedUserData.mode},
+            },
+            profiles: {
+              [creatorUID]: {
+                interests: creatorData.interests || [],
+                dealbreakers: creatorData.dealbreakers || [],
+                gender: creatorData.gender,
+                lookingForGender: creatorData.lookingForGender || [],
+                woobieName: creatorData.woobieName,
+              },
+              [newQueuedUserUID]: {
+                interests: newQueuedUserData.interests || [],
+                dealbreakers: newQueuedUserData.dealbreakers || [],
+                gender: newQueuedUserData.gender,
+                lookingForGender: newQueuedUserData.lookingForGender || [],
+                woobieName: newQueuedUserData.woobieName,
+              },
+            },
+            createdAt: admin.database.ServerValue.TIMESTAMP,
+            referralMatch: true,
+          });
+
+          // Update both users' currentMatch
+          const updates = {};
+          updates[`users/${creatorUID}/currentMatch`] = {
+            matchID,
+            stage: "bio",
+            username: creatorData.woobieName,
+          };
+          updates[`users/${newQueuedUserUID}/currentMatch`] = {
+            matchID,
+            stage: "bio",
+            username: newQueuedUserData.woobieName,
+          };
+
+          await admin.database().ref().update(updates);
+
+          // Remove both from queue
+          await creatorQueueRef.remove();
+          await admin.database().ref(`queue/${newQueuedUserUID}`).remove();
+
+          // Mark code as used and matched
+          await codeRef.update({
+            used: true,
+            usedBy: newQueuedUserUID,
+            usedAt: admin.database.ServerValue.TIMESTAMP,
+            matchID,
+            matchedAt: admin.database.ServerValue.TIMESTAMP,
+          });
+
+          logger.info(`Referral match created successfully: ${matchID}`);
+          return null; // Exit early - referral match complete
+        } catch (error) {
+          logger.error(`Error processing referral match for ${newQueuedUserUID}:`, error);
+          return null;
+        }
+      }
+
       const queueRef = admin.database().ref("/queue");
       const allQueueSnapshot = await queueRef.get();
       const allQueueData = allQueueSnapshot.val();
