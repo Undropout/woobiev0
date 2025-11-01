@@ -206,6 +206,34 @@ Firebase security rules rely on **custom claims** (`matchAccess` array) set by C
 
 If you find static question arrays during development, this is a regression that needs to be fixed immediately.
 
+### ⚠️ DEPLOYMENT CHECKLIST
+
+**CRITICAL:** Pushing to GitHub does NOT make changes live. You MUST deploy to Firebase Hosting.
+
+**For ANY user-facing frontend changes, complete ALL steps:**
+
+1. ✅ Make code changes
+2. ✅ Test locally with `npm run dev` (if needed)
+3. ✅ Commit changes to git
+4. ✅ Build for production: `npm run build`
+5. ✅ Deploy to Firebase Hosting: `firebase deploy --only hosting`
+6. ✅ Verify live at **woobie.fun**
+
+**For Firebase Functions changes:**
+
+1. ✅ Make code changes in `functions/` directory
+2. ✅ Test with `cd functions && npm run serve` (if needed)
+3. ✅ Commit changes to git
+4. ✅ Deploy functions: `cd functions && npm run deploy`
+5. ✅ Check logs: `firebase functions:log`
+
+**NEVER say "deployed" or "live" unless you've actually run the Firebase deploy command.**
+
+**If you cannot run Firebase CLI commands** (authentication issues, environment limitations):
+- Explicitly tell the user they need to run the deploy commands themselves
+- Provide the exact commands they need to run
+- Do NOT claim the changes are "live" or "deployed"
+
 ## Important Development Notes
 
 ### Configuration Files
