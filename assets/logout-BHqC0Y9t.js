@@ -1,0 +1,1 @@
+import{s as e,a as n}from"./firebase-config-CQBF9bbN.js";const o=document.getElementById("logout-button");o&&(o.onclick=async()=>{confirm("Are you sure you want to log out? You'll lose your place unless you're logged in.")&&(localStorage.clear(),sessionStorage.clear(),e(n).catch(t=>{console.warn("Firebase sign-out failed:",t)}),window.location.href="/index.html")});

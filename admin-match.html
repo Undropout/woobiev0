@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Woobie Admin - Manual Match</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #000;
+      color: #00ff00;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 { color: #33ff33; }
+    button {
+      background: #000;
+      color: #33ff33;
+      border: 2px solid #33ff33;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      margin: 0.5rem;
+    }
+    button:hover {
+      background: #33ff33;
+      color: #000;
+    }
+    .user {
+      border: 2px solid #33ff33;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      cursor: pointer;
+    }
+    .user.selected {
+      background: #003300;
+      border-color: #00ffff;
+    }
+    #queue { margin-top: 2rem; }
+    .info { color: #00ffff; }
+    .error { color: #ff0000; }
+    .success { color: #00ff00; }
+  </style>
+  <script type="module" crossorigin src="/assets/adminMatch-lAFEWX_c.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/firebase-config-CQBF9bbN.js">
+</head>
+<body>
+  <h1>🔧 Woobie Admin - Manual Match</h1>
+
+  <div>
+    <button id="login-btn">Login to Firebase</button>
+    <button id="list-btn" disabled>List Queue</button>
+    <button id="match-btn" disabled>Match Selected Users</button>
+    <span id="status"></span>
+  </div>
+
+  <div id="queue"></div>
+
+</body>
+</html>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tier 2: Let's communicate a little </title>
-  <p>Now you get to send your partner a direct message <i>and/or</i> an image <i>and/or</i> a recorded message </p>
+  <p>Now you get to send your partner a direct message <i>and/or</i> an image <i>and/or</i> a recorded message </p>
   <style>
     .image-adjust-layout {
       display: flex;
@@ -296,15 +296,16 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/assets/tier2Send-CB7JAlrK.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/firebase-config-C0024qU1.js">
-  <link rel="modulepreload" crossorigin href="/assets/logout-q5yztgx1.js">
+  <script type="module" crossorigin src="/assets/tier2Send-DLik0gNm.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/firebase-config-CQBF9bbN.js">
+  <link rel="modulepreload" crossorigin href="/assets/logout-BHqC0Y9t.js">
+  <link rel="modulepreload" crossorigin href="/assets/feedback-CLnNHjql.js">
   <link rel="stylesheet" crossorigin href="/assets/style-DdkmcSxD.css">
 </head>
 <body>
   <div class="container">
-    <h1>🎁 Share Your Tier 2 Reward</h1>
-    <p>You've completed Tier 2! Now you can send your match a small reward — a note, a sketch, or a voice message.</p>
+    <h1>🎁 Share Your Tier 2 Extra Glimpse</h1>
+    <p>You've completed Tier 2! Now you can send your partner an extra glimpse: a note, and/or an image, and/or a voice message.</p>
 
     <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
 
@@ -312,10 +313,10 @@
       <label for="reward-text">Text Message (optional)</label>
       <textarea id="reward-text" rows="4" placeholder="Write something nice..."></textarea>
 
-      <h3>🎨 Image Reward</h3>
+      <h3>🎨 Image Extra Glimpse</h3>
       <input type="file" id="image-upload" accept="image/*">
 
-      <div class="image-adjust-layout" id="image-adjust-wrap">
+      <div class="image-adjust-layout" id="image-adjust-wrap" style="display:none;">
         <div class="image-preview-block">
           <canvas id="chat-preview-canvas" width="128" height="128" style="border:1px solid #33ff33;"></canvas>
           <div id="color-buttons" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
@@ -339,9 +340,8 @@
           <label for="chat-image-alt" style="color:#33ff33; display:block; margin-top:1rem;">Alt text (140 characters):</label>
           <input type="text" id="chat-image-alt" maxlength="140" style="width:100%; margin-bottom:1rem;" />
 
-          <div style="display:flex; justify-content:space-between; margin-top:1rem;">
-            <button id="chat-cancel-upload" class="close-adjust" style="background:#222; color:#ff3333; padding:0.5rem 1rem; border:1px solid #ff3333;">Cancel</button>
-            <button id="chat-send-upload" style="background:#000; color:#33ff33; padding:0.5rem 1rem; border:1px solid #33ff33;">Send Image →</button>
+          <div style="text-align:center; margin-top:1rem;">
+            <button id="chat-cancel-upload" class="close-adjust" style="background:#222; color:#ff3333; padding:0.5rem 1rem; border:1px solid #ff3333;">🗑️ Remove Image</button>
           </div>
         </div>
       </div>
@@ -357,7 +357,10 @@
       <audio id="audio-preview" controls style="display:none;"></audio>
 
       <p id="status-msg" style="margin-top:1rem;"></p>
-      <button id="submit-reward" class="woobie-button" style="margin-top:1rem;">✅ Finalize & Send All</button>
+      <div style="border:1px solid #33ff33; padding:1rem; margin-top:1rem; text-align:center;">
+        <p style="color:#33ff33; margin-bottom:0.5rem;">Ready to send? Review what you've prepared above (text, image, and/or audio), then click below to send everything to your match.</p>
+        <button id="submit-reward" class="woobie-button">✅ Finalize & Send All</button>
+      </div>
     </div>
 
     <!-- Our Story Modal -->
@@ -371,6 +374,6 @@
       <button id="our-story-button" class="woobie-button">📖 Our Story So Far</button>
     </div>
   </div>
-
+
 </body>
 </html>

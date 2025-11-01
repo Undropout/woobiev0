@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pick Your Woobie Name</title>
-  <script type="module" crossorigin src="/assets/namePicker-A4FOobx2.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/firebase-config-C0024qU1.js">
-  <link rel="modulepreload" crossorigin href="/assets/logout-q5yztgx1.js">
+  <script type="module" crossorigin src="/assets/namePicker-BkSDqTOP.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/firebase-config-CQBF9bbN.js">
+  <link rel="modulepreload" crossorigin href="/assets/logout-BHqC0Y9t.js">
+  <link rel="modulepreload" crossorigin href="/assets/feedback-CLnNHjql.js">
   <link rel="stylesheet" crossorigin href="/assets/style-DdkmcSxD.css">
 </head>
 <body class="normal-mode">
@@ -22,6 +23,38 @@
     <button id="reroll" class="woobie-button">🎰 Reroll 🎰</button>
     <p id="selected-name"></p>
     <button id="confirm" class="woobie-button">✅ This is me</button>
+
+    <!-- Main continue button -->
+    <button id="continue-main-btn" class="woobie-button" style="display:none; margin-top: 1rem; font-size: 1.2rem;">Begin Journey →</button>
+
+    <!-- Referral Code Section (hidden by default, less prominent) -->
+    <div id="referral-section" style="display:none; margin-top: 2rem; padding: 0.5rem; border: 1px solid #555; border-radius: 5px; opacity: 0.7;">
+      <details>
+        <summary style="color: #888; cursor: pointer; padding: 0.5rem;">Optional: Match with a specific friend</summary>
+        <div style="margin-top: 1rem;">
+          <button id="generate-code-btn" class="woobie-button" style="font-size: 0.9rem;">🔗 Generate Code</button>
+          <button id="enter-code-btn" class="woobie-button" style="font-size: 0.9rem;">🔑 Enter Code</button>
+
+          <!-- Code generation result -->
+          <div id="code-result" style="display:none; margin-top: 1rem;">
+            <p style="color: #00ffff;">Your friend code:</p>
+            <p id="generated-code" style="color: #33ff33; font-size: 1.2rem; font-weight: bold;"></p>
+            <button id="copy-code-btn" class="woobie-button">📋 Copy Code</button>
+            <button id="proceed-with-code-btn" class="woobie-button">✅ Proceed</button>
+          </div>
+
+          <!-- Code entry form -->
+          <div id="code-entry" style="display:none; margin-top: 1rem;">
+            <label for="friend-code-input" style="color: #00ffff;">Enter your friend's code:</label>
+            <input type="text" id="friend-code-input" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; background: #000; border: 2px solid #33ff33; color: #33ff33;" placeholder="purple-cosmic-dolphin">
+            <button id="validate-code-btn" class="woobie-button" style="margin-top: 0.5rem;">✅ Validate</button>
+            <button id="cancel-entry-btn" class="woobie-button" style="margin-top: 0.5rem;">❌ Cancel</button>
+            <p id="validation-message" style="margin-top: 0.5rem;"></p>
+          </div>
+        </div>
+      </details>
+    </div>
+
     <button id="logout-button" class="woobie-button" style="margin-top: 1rem;">🚪 Log out</button>
   </div>
 
@@ -77,6 +110,6 @@
       }
     });
   </script>
-
+
 </body>
 </html>

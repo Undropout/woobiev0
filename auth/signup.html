@@ -29,9 +29,9 @@
       text-shadow: 0 0 3px #33ff33;
     }
   </style>
-  <script type="module" crossorigin src="/assets/signup-BbjNnlB8.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/firebase-config-C0024qU1.js">
-  <link rel="modulepreload" crossorigin href="/assets/logout-q5yztgx1.js">
+  <script type="module" crossorigin src="/assets/signup-BI-12RJj.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/firebase-config-CQBF9bbN.js">
+  <link rel="modulepreload" crossorigin href="/assets/logout-BHqC0Y9t.js">
   <link rel="stylesheet" crossorigin href="/assets/style-DdkmcSxD.css">
 </head>
 <body>
@@ -39,6 +39,9 @@
     <h1>Create Your Woobie Account</h1>
     <!-- 🚪 Log out button -->
     <button id="logout-button" class="woobie-button" style="float:right;">🚪 Log out</button>
+
+    <button id="onboarding-btn" class="woobie-button" style="margin-bottom: 1rem; background: #111; border-color: #00ffff; color: #00ffff;">💡 Before You Begin</button>
+
     <form id="signup-form">
       <label for="email">Email</label>
       <input type="email" id="email" required />
@@ -48,7 +51,188 @@
     </form>
     <p id="error-message" style="color:#ff4444;"></p>
     <p><a href="/auth/login.html">Already have an account? Log in here</a></p>
+
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #33ff33; text-align: center; font-size: 0.85rem;">
+      <p style="color: #99ff99;">By signing up, you agree to our <a href="#" id="tos-link" style="color: #00ffff;">Terms of Service</a> and <a href="#" id="privacy-link" style="color: #00ffff;">Privacy Policy</a></p>
+      <p style="color: #99ff99; margin-top: 0.5rem;">You must be 18 or older to use Woobie.</p>
+    </div>
   </div>
-  
+
+  <div id="onboarding-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:9999; padding:2rem; overflow:auto;">
+    <div style="max-width:700px; margin:0 auto; background:#000; border:2px solid #33ff33; border-radius:10px; padding:2rem;">
+      <h2 style="color:#33ff33; margin-top:0;">💡 Before You Begin</h2>
+
+      <p style="color:#fff; line-height:1.6;">Woobie isn't a dating app or hookup platform. There are <em>plenty</em> of those out there already.</p>
+
+      <p style="color:#fff; line-height:1.6;">This is a space for building <strong style="color:#33ff33;">genuine connections</strong> through shared vulnerability and trust. Whether you're looking to make a new friend or explore a deeper connection, Woobie creates a safe, intentional path to authentic human closeness.</p>
+
+      <p style="color:#fff; line-height:1.6;">You'll move through <strong style="color:#33ff33;">3 tiers together, 12 questions each</strong>, sharing more of yourselves as you go. <strong style="color:#00ffff;">No pressure, no performance.</strong></p>
+
+      <p style="color:#fff; line-height:1.6;">This is about two people getting to know each other at a pace that feels right.</p>
+
+      <p style="color:#fff; line-height:1.6;">The more you stick your neck out, the more your partner feels safe to stick their neck out, and you feel bonds of trust grow.</p>
+
+      <p style="color:#fff; line-height:1.6; margin-bottom:2rem;"><em>Take your time. Be yourself. See what happens.</em></p>
+
+      <details style="margin-bottom:1rem; border:1px solid #33ff33; padding:1rem; border-radius:5px;">
+        <summary style="color:#33ff33; cursor:pointer; font-weight:bold;">📊 How Matching Works</summary>
+        <div style="color:#fff; margin-top:1rem; line-height:1.6;">
+          <p>• Matching is based on <strong style="color:#33ff33;">shared interests + your gender preferences</strong></p>
+          <p>• You don't have to declare your gender (optional)</p>
+          <p>• We match you with people who identified as your preference</p>
+          <p>• <em>"This keeps the focus on personality, not appearance"</em></p>
+          <p>• <strong>Current rule:</strong> At least 1 common interest required</p>
+        </div>
+      </details>
+
+      <details style="margin-bottom:1rem; border:1px solid #33ff33; padding:1rem; border-radius:5px;">
+        <summary style="color:#33ff33; cursor:pointer; font-weight:bold;">📈 The Tiers Explained</summary>
+        <div style="color:#fff; margin-top:1rem; line-height:1.6;">
+          <p><strong style="color:#00ffff;">Tier 0:</strong> Type a bio. This will go somewhere safe until you're done with Tier 1a.</p>
+          <p><strong style="color:#00ffff;">Tier 1a:</strong> 6 randomly-selected text-based questions about you. At the end of Tier 1a, your answers and your partner's answers will be exchanged. If you both vote to continue, you'll get to read each others' bios.</p>
+          <p><strong style="color:#00ffff;">Tier 1b:</strong> 6 more randomly-selected text-based questions about you. At the end of Tier 1b, your answers and your partner's answers will be exchanged. If you both vote to continue, you'll have the opportunity to send a direct message for the first time. (Optional, 250 words/2000 characters maximum).</p>
+          <p><strong style="color:#00ffff;">Tier 2:</strong> If Tier 1 was "let me tell you about myself", tier 2 has some "tell me what you've noticed about me" mixed in. At the end of Tier 2, you'll be given the opportunity to send a direct message (250 words/2000 characters max), and/or an image (which will be downgraded to match our pre-social-media aesthetic), and/or a voice message.</p>
+          <p><strong style="color:#00ffff;">Tier 3:</strong> If Tier 1 was "This is me", and Tier 2 was "This is you", Tier 3 is more like "This is Us". After Tier 3, if you both vote to continue, you'll be given access to a chatroom where you can send as many direct messages as you like.</p>
+          <p><strong style="color:#00ffff;">Chatroom:</strong> Stay as long as you like, or exchange contact info and ride off into your new adventures as friends together! You can send messages and a limited number of images and voice messages.</p>
+          <p style="margin-top:1rem;"><em>"You move at your own pace. No rush."</em></p>
+        </div>
+      </details>
+
+      <details style="margin-bottom:2rem; border:1px solid #33ff33; padding:1rem; border-radius:5px;">
+        <summary style="color:#33ff33; cursor:pointer; font-weight:bold;">❓ FAQ</summary>
+        <div style="color:#fff; margin-top:1rem; line-height:1.6;">
+          <p><strong style="color:#00ffff;">Is this a dating app?</strong><br>No. It's not like dating is bad; there are just billions of dating apps and don't come here looking for one because your partner probably isn't. This is an app where you learn to connect on a level no other app makes happen. This is a treatment for loneliness and to build a friendship with bonds of trust.</p>
+          <p><strong style="color:#00ffff;">Can I match with multiple people?</strong><br>Kinda. (in a future update, yes. While this is about building quality connections, not quantities, we understand if you're looking for more friends and there's nothing wrong with that; technically, that's why we all come to Woobie. For now, you can sign up with a different email if you'd like to pair with more than one person in a separate 1-on-1 friendship)</p>
+          <p><strong style="color:#00ffff;">What if the match doesn't work out?</strong><br>You can rematch. Either party can end the friendship when voting in-between tiers. No need to explain, no need to apologize, no need to assign blame. We'll let them know that there are billions of reasons another party would choose not to continue, the vast majority of which are not anyone's fault.</p>
+          <p><strong style="color:#00ffff;">Is my data private?</strong><br>Yes. We chose to found a nonprofit so no one could ever pressure us to do anything profitable or creepy with your data. No one but you and your partner knows anything about the two of you.</p>
+        </div>
+      </details>
+
+      <button id="close-onboarding" class="woobie-button" style="width:100%;">Got it →</button>
+    </div>
+  </div>
+
+  <!-- Privacy Policy Modal -->
+  <div id="privacy-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:9999; padding:2rem; overflow:auto;">
+    <div style="max-width:700px; margin:0 auto; background:#000; border:2px solid #33ff33; border-radius:10px; padding:2rem;">
+      <h2 style="color:#33ff33; margin-top:0;">🔒 Privacy Policy</h2>
+
+      <p style="color:#fff; font-size:0.9rem; font-style:italic; margin-bottom:1.5rem;">Last updated: January 2025</p>
+
+      <h3 style="color:#00ffff;">Our Commitment</h3>
+      <p style="color:#fff; line-height:1.6;">Woobie is a nonprofit dedicated to helping people build genuine friendships. We will never sell your data, show you ads, or do anything creepy with your information. Period.</p>
+
+      <h3 style="color:#00ffff;">What We Collect</h3>
+      <p style="color:#fff; line-height:1.6;">We collect only what we need to make Woobie work:</p>
+      <ul style="color:#fff; line-height:1.6;">
+        <li><strong style="color:#33ff33;">Account info:</strong> Email address and password (encrypted)</li>
+        <li><strong style="color:#33ff33;">Profile info:</strong> Woobie name, interests, dealbreakers, gender preferences, bio</li>
+        <li><strong style="color:#33ff33;">Interactions:</strong> Your answers to tier questions, messages with your partner, votes, images/voice notes you share</li>
+        <li><strong style="color:#33ff33;">Technical data:</strong> Firebase authentication tokens, session data</li>
+      </ul>
+
+      <h3 style="color:#00ffff;">Who Can See Your Data</h3>
+      <p style="color:#fff; line-height:1.6;"><strong style="color:#33ff33;">Only your partner.</strong> That's it. No one else—not other users, not us (except for technical troubleshooting if you request support), not advertisers.</p>
+
+      <h3 style="color:#00ffff;">How We Use Your Data</h3>
+      <ul style="color:#fff; line-height:1.6;">
+        <li>Match you with someone based on shared interests and preferences</li>
+        <li>Facilitate your friendship journey through the tier system</li>
+        <li>Send you email notifications (match found, partner completed a tier, etc.)</li>
+        <li>Improve Woobie's features and fix bugs</li>
+      </ul>
+
+      <h3 style="color:#00ffff;">Your Rights</h3>
+      <ul style="color:#fff; line-height:1.6;">
+        <li><strong style="color:#33ff33;">Access:</strong> You can view your profile data anytime</li>
+        <li><strong style="color:#33ff33;">Deletion:</strong> Email us at friends@woobie.fun to delete your account and all associated data</li>
+        <li><strong style="color:#33ff33;">Opt-out:</strong> Unsubscribe from emails anytime (we'll still send critical notifications)</li>
+      </ul>
+
+      <h3 style="color:#00ffff;">Data Security</h3>
+      <p style="color:#fff; line-height:1.6;">We use Firebase (Google Cloud) for secure data storage, authentication, and hosting. Your password is encrypted. All connections use HTTPS. We follow industry-standard security practices.</p>
+
+      <h3 style="color:#00ffff;">Changes to This Policy</h3>
+      <p style="color:#fff; line-height:1.6;">If we update this policy, we'll notify you by email and update the date at the top. Continued use means you accept the changes.</p>
+
+      <h3 style="color:#00ffff;">Contact Us</h3>
+      <p style="color:#fff; line-height:1.6;">Questions about privacy? Email us at <a href="mailto:friends@woobie.fun" style="color:#00ffff;">friends@woobie.fun</a></p>
+
+      <button id="close-privacy" class="woobie-button" style="width:100%; margin-top:1rem;">Close</button>
+    </div>
+  </div>
+
+  <!-- Terms of Service Modal -->
+  <div id="tos-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:9999; padding:2rem; overflow:auto;">
+    <div style="max-width:700px; margin:0 auto; background:#000; border:2px solid #33ff33; border-radius:10px; padding:2rem;">
+      <h2 style="color:#33ff33; margin-top:0;">📜 Terms of Service</h2>
+
+      <p style="color:#fff; font-size:0.9rem; font-style:italic; margin-bottom:1.5rem;">Last updated: January 2025</p>
+
+      <h3 style="color:#00ffff;">Welcome to Woobie</h3>
+      <p style="color:#fff; line-height:1.6;">Woobie exists to help adults build genuine friendships through vulnerability and trust. By using Woobie, you agree to these terms.</p>
+
+      <h3 style="color:#00ffff;">Age Requirement</h3>
+      <p style="color:#fff; line-height:1.6;"><strong style="color:#33ff33;">You must be 18 years or older to use Woobie.</strong> This protects minors and ensures Woobie remains a space for adults seeking meaningful adult friendships.</p>
+
+      <h3 style="color:#00ffff;">What Woobie Is (And Isn't)</h3>
+      <p style="color:#fff; line-height:1.6;">Woobie is designed for building platonic friendships through structured vulnerability. While romantic connections may develop naturally, <strong>Woobie is not a dating app.</strong> Please don't come here expecting or demanding romantic/sexual connections—your partner likely isn't looking for that.</p>
+
+      <h3 style="color:#00ffff;">How to Woobie: Our Community Values</h3>
+
+      <div style="background:#1a1a1a; border-left:4px solid #33ff33; padding:1rem; margin:1rem 0;">
+        <p style="color:#33ff33; margin:0;"><strong>Be curious about people different from you.</strong></p>
+        <p style="color:#fff; margin:0.5rem 0 0 0; font-size:0.9rem;">Woobie connects you with someone who shares your interests but may be very different in other ways. That's the point. You might learn something if you try.</p>
+      </div>
+
+      <div style="background:#1a1a1a; border-left:4px solid #33ff33; padding:1rem; margin:1rem 0;">
+        <p style="color:#33ff33; margin:0;"><strong>No discrimination. Period.</strong></p>
+        <p style="color:#fff; margin:0.5rem 0 0 0; font-size:0.9rem;">Discrimination based on race, ethnicity, religion, gender identity, sexual orientation, disability, or any other characteristic is not tolerated. We're here to build bridges, not walls.</p>
+      </div>
+
+      <div style="background:#1a1a1a; border-left:4px solid #33ff33; padding:1rem; margin:1rem 0;">
+        <p style="color:#33ff33; margin:0;"><strong>Respect boundaries.</strong></p>
+        <p style="color:#fff; margin:0.5rem 0 0 0; font-size:0.9rem;">If your partner doesn't want to answer a question or continue to the next tier, respect that. No pressure, no guilt-tripping.</p>
+      </div>
+
+      <div style="background:#1a1a1a; border-left:4px solid #33ff33; padding:1rem; margin:1rem 0;">
+        <p style="color:#33ff33; margin:0;"><strong>Be yourself.</strong></p>
+        <p style="color:#fff; margin:0.5rem 0 0 0; font-size:0.9rem;">Authenticity builds trust. Don't pretend to be someone you're not. Real connections form when both people are genuine.</p>
+      </div>
+
+      <h3 style="color:#00ffff;">Prohibited Behavior</h3>
+      <p style="color:#fff; line-height:1.6;">The following will result in immediate removal from Woobie:</p>
+      <ul style="color:#fff; line-height:1.6;">
+        <li>Harassment, threats, or abusive behavior</li>
+        <li>Hate speech or discrimination</li>
+        <li>Sexual harassment or unsolicited explicit content</li>
+        <li>Spam, scams, or commercial solicitation</li>
+        <li>Impersonation or deception</li>
+        <li>Sharing another user's personal information without consent</li>
+        <li>Any illegal activity</li>
+      </ul>
+
+      <h3 style="color:#00ffff;">If Things Don't Work Out</h3>
+      <p style="color:#fff; line-height:1.6;">Either person can end the friendship at any tier by voting "no." No explanation needed. No hard feelings. There are billions of reasons why a connection might not work, and most aren't anyone's fault.</p>
+
+      <h3 style="color:#00ffff;">Content You Share</h3>
+      <p style="color:#fff; line-height:1.6;">You own your content (answers, messages, images, voice notes). By sharing on Woobie, you grant us the right to store and transmit it to facilitate your friendship. We will never use your content for marketing or share it publicly.</p>
+
+      <h3 style="color:#00ffff;">Reporting & Safety</h3>
+      <p style="color:#fff; line-height:1.6;">If someone violates these terms or makes you uncomfortable, email <a href="mailto:friends@woobie.fun" style="color:#00ffff;">friends@woobie.fun</a>. We take reports seriously and investigate promptly.</p>
+
+      <h3 style="color:#00ffff;">Disclaimers</h3>
+      <p style="color:#fff; line-height:1.6; font-size:0.9rem;">Woobie is provided "as is." We're not responsible for the behavior of other users or the success of any friendship. While we work hard to keep Woobie safe, we can't guarantee it will always be available or error-free. Use at your own risk.</p>
+
+      <h3 style="color:#00ffff;">Changes to Terms</h3>
+      <p style="color:#fff; line-height:1.6;">We may update these terms. If we do, we'll email you and update the date at the top. Continued use means you accept the changes.</p>
+
+      <h3 style="color:#00ffff;">Contact</h3>
+      <p style="color:#fff; line-height:1.6;">Questions? Email <a href="mailto:friends@woobie.fun" style="color:#00ffff;">friends@woobie.fun</a></p>
+
+      <button id="close-tos" class="woobie-button" style="width:100%; margin-top:1rem;">Close</button>
+    </div>
+  </div>
+
 </body>
 </html>
