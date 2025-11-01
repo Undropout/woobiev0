@@ -65,6 +65,7 @@ onAuthStateChanged(auth, async (user) => {
   const colorButtons = document.querySelectorAll('.color-btn');
   const sendBtn = document.getElementById('chat-send-upload');
   const textInput = document.getElementById('reward-text');
+  const textCount = document.getElementById('text-count');
   const audioPreview = document.getElementById('audio-preview');
   const statusMsg = document.getElementById('status-msg');
 
@@ -78,6 +79,25 @@ onAuthStateChanged(auth, async (user) => {
   // Set up canvas context
   if (previewCanvas) {
     ctx = previewCanvas.getContext('2d', { willReadFrequently: true });
+  }
+
+  // Text input counter
+  if (textInput && textCount) {
+    textInput.oninput = () => {
+      const text = textInput.value.trim();
+      const words = text.split(/\s+/).filter(Boolean);
+      const wordCount = text ? words.length : 0;
+      const charCount = textInput.value.length;
+
+      textCount.textContent = `${wordCount} / 250 words | ${charCount} / 2000 characters`;
+
+      // Change color if over limits
+      if (wordCount > 250 || charCount > 2000) {
+        textCount.style.color = '#ff6666';
+      } else {
+        textCount.style.color = '#33ff33';
+      }
+    };
   }
 
   // Audio recording setup
@@ -230,6 +250,22 @@ onAuthStateChanged(auth, async (user) => {
   if (submitBtn) {
     submitBtn.onclick = async () => {
       if (!statusMsg) return;
+
+      // Validate text input limits
+      if (textInput && textInput.value.trim()) {
+        const text = textInput.value.trim();
+        const words = text.split(/\s+/).filter(Boolean);
+        const wordCount = words.length;
+        const charCount = textInput.value.length;
+        const repeated = /(.)\1{20,}/.test(textInput.value);
+
+        if (wordCount > 250 || charCount > 2000 || repeated) {
+          statusMsg.textContent = 'Please keep your message under 250 words and 2000 characters, and avoid excessive repeated characters.';
+          statusMsg.style.color = '#ff6666';
+          return;
+        }
+      }
+
       statusMsg.textContent = 'Uploading...';
       statusMsg.style.color = '#33ff33';
 
