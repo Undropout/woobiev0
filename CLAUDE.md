@@ -10,7 +10,7 @@ Woobie is a matchmaking web application with a multi-tier interaction system. Us
 - Frontend: Vanilla JavaScript (ES6 modules), Vite for dev/build
 - Backend: Firebase (Realtime Database, Auth, Cloud Functions v2, Storage)
 - Email: SendGrid
-- Deployment: GitHub Pages for frontend, Firebase for backend
+- Deployment: Firebase Hosting for frontend (woobie.fun), Firebase for backend
 
 ## Development Commands
 
@@ -28,8 +28,8 @@ npm run build
 # Preview production build
 npm run preview
 
-# Deploy frontend to GitHub Pages
-npm run deploy
+# Deploy frontend (see "Deployment & Infrastructure Decisions" section below)
+npm run build && firebase deploy --only hosting
 ```
 
 ### Firebase Functions Development
@@ -167,6 +167,44 @@ The application uses **localStorage** and Firebase Realtime Database for state m
 - Redirects authenticated users on landing/auth pages to `/resume.html`
 
 Firebase security rules rely on **custom claims** (`matchAccess` array) set by Cloud Functions to control read/write access to `/matches/{matchID}/*` paths.
+
+## Deployment & Infrastructure Decisions
+
+### ⚠️ CRITICAL: Frontend Hosting (DO NOT USE GITHUB PAGES)
+
+**Decision Date:** Late 2024/Early 2025
+
+**GitHub Pages has been ABANDONED** due to persistent, unresolvable issues:
+- Pages not updating/refreshing after deployments
+- Live updates failing consistently
+- Domain configuration problems
+- Buggy behavior that blocked production releases
+
+**Current Setup:** Firebase Hosting at **woobie.fun**
+- Deploy: `npm run build && firebase deploy --only hosting`
+- Configuration: `firebase.json` (hosting section)
+- Custom domain: Configured via Firebase Console
+
+**IMPORTANT:** The `package.json` still contains an old `npm run deploy` script that uses `gh-pages`. **DO NOT USE IT.** Always use Firebase Hosting for all deployments.
+
+### ⚠️ CRITICAL: Question Pool System (Tier1a/Tier1b)
+
+**NEVER revert to static hardcoded questions.**
+
+**Problem:** During bug fixes and refactoring, the tier question system has reverted to 36 static fixed questions multiple times. This breaks the intended user experience.
+
+**Required behavior:** Questions must be **randomly selected from a question pool** for each match.
+
+**Files to watch:**
+- `tier1a/tier1a.js` - Currently has 6 static questions (lines 14-21), should pull from pool
+- `tier1b/tier1b.js` - Currently has 6 static questions (lines 13-20), should pull from pool
+
+**When making ANY changes to tier files:**
+1. Check that questions are being pulled randomly from a pool
+2. Do NOT hardcode question arrays directly in the tier files
+3. Verify the randomization logic is intact before committing
+
+If you find static question arrays during development, this is a regression that needs to be fixed immediately.
 
 ## Important Development Notes
 
