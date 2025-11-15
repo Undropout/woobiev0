@@ -232,12 +232,21 @@
 
           const currentUserId = user.uid;
 
-          // Fetch tier1a, tier1b, and tier2 answers
-          const [tier1aSnap, tier1bSnap, tier2Snap] = await Promise.all([
+          // Fetch questions and answers
+          const [tier1QuestionsSnap, tier2QuestionsSnap, tier1aSnap, tier1bSnap, tier2Snap] = await Promise.all([
+            get(ref(db, `matches/${matchID}/tier1Questions`)),
+            get(ref(db, `matches/${matchID}/tier2Questions`)),
             get(ref(db, `matches/${matchID}/tier1a`)),
             get(ref(db, `matches/${matchID}/tier1b`)),
             get(ref(db, `matches/${matchID}/tier2`))
           ]);
+
+          const allTier1Questions = tier1QuestionsSnap.val() || [];
+          const tier2Questions = tier2QuestionsSnap.val() || [];
+
+          // Tier1 questions are split: first 6 for tier1a, next 6 for tier1b
+          const tier1aQuestions = allTier1Questions.slice(0, 6);
+          const tier1bQuestions = allTier1Questions.slice(6, 12);
 
           const tier1aData = tier1aSnap.val() || {};
           const tier1bData = tier1bSnap.val() || {};
@@ -248,39 +257,6 @@
             storyContent.innerHTML = '<p>Waiting for your match to complete their answers...</p>';
             return;
           }
-
-          const tier1aQuestions = [
-            "What's something you're proud of recently?",
-            "How would a friend describe you?",
-            "What does comfort look like to you?",
-            "When do you feel most alive?",
-            "What's a recent thought you can't shake?",
-            "How do you usually show someone you care?"
-          ];
-
-          const tier1bQuestions = [
-            "What's something you're working on improving?",
-            "How do you recharge after a stressful day?",
-            "What's a non-negotiable value in your life?",
-            "What do you want more of in your future?",
-            "What makes you feel heard?",
-            "What's a memory you'd share to explain who you are?"
-          ];
-
-          const tier2Questions = [
-            "What's a moment in your life that changed the way you see the world?",
-            "How do you show someone you care about them?",
-            "What's something people often misunderstand about you?",
-            "When do you feel most like yourself?",
-            "What's one thing you wish more people asked you about?",
-            "What makes you feel seen or understood?",
-            "What's a belief you held strongly that changed over time?",
-            "What's one thing you never get tired of talking about?",
-            "When have you felt the most brave?",
-            "What do you wish someone had told you earlier in life?",
-            "What kind of people do you feel safest around?",
-            "What's something you've forgiven yourself for?"
-          ];
 
           let html = '<h3>📘 Tier 1a Answers</h3>';
           const myTier1a = tier1aData[currentUserId]?.answers || [];

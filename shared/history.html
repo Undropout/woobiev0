@@ -50,10 +50,10 @@
   </div>
 
   <script type="module">
-    import { db } from '../shared/firebase-config.js';
+    import { db, auth } from '../shared/firebase-config.js';
     import { ref, get } from 'firebase/database';
+    import { onAuthStateChanged } from 'firebase/auth';
 
-    const username = localStorage.getItem('woobieUsername');
     const matchID = localStorage.getItem('woobieMatchID');
     const timeline = document.getElementById('timeline');
 
@@ -64,92 +64,122 @@
       tier3: '3'
     };
 
-    function renderStyledName(name, mode) {
-      return `<strong class="woobie-${mode}">${name}</strong>`;
-    }
-
-    const sections = [
-      {
-        key: 'bios',
-        label: '🧬 Bios',
-        render: (data, partner, modes) => {
-          return `<p>${renderStyledName(username, modes[username])}: ${data[username]}</p>
-                  <p>${renderStyledName(partner, modes[partner])}: ${data[partner]}</p>`;
-        }
-      },
-      ...['tier1a', 'tier1b', 'tier2', 'tier3'].map(key => ({
-        key,
-        label: `Tier ${tierLabelMap[key]} Answers`,
-        render: (data, partner, modes) => {
-          let out = '';
-          const myRaw = data[username];
-          const theirRaw = data[partner];
-
-          const myAnswers = Array.isArray(myRaw)
-            ? myRaw
-            : Array.isArray(myRaw?.answers)
-              ? myRaw.answers
-              : [];
-
-          const theirAnswers = Array.isArray(theirRaw)
-            ? theirRaw
-            : Array.isArray(theirRaw?.answers)
-              ? theirRaw.answers
-              : [];
-
-          if (!myAnswers.length && !theirAnswers.length) {
-            return '<p>(No answers available yet)</p>';
-          }
-
-          myAnswers.forEach((ans, i) => {
-            out += `<p><strong>Q${i + 1}</strong></p>`;
-            out += `<p>${renderStyledName(username, modes[username])}: ${ans?.value || ans || ''}</p>`;
-            out += `<p>${renderStyledName(partner, modes[partner])}: ${theirAnswers[i]?.value || theirAnswers[i] || ''}</p>`;
-          });
-
-          return out;
-        }
-      })),
-      {
-        key: 'tier1bLetters',
-        label: '💌 Tier 1B Letters',
-        render: (data, partner, modes) => {
-          return `<details><summary>${renderStyledName(username, modes[username])}'s Letter</summary><p>${data[username] || '(no message)'}</p></details>
-                  <details><summary>${renderStyledName(partner, modes[partner])}'s Letter</summary><p>${data[partner] || '(no message)'}</p></details>`;
-        }
-      },
-      {
-        key: 'tier2Rewards',
-        label: '🎁 Tier 2 Rewards',
-        render: (data, partner, modes) => {
-          const mine = data[username] || {};
-          const theirs = data[partner] || {};
-          let out = '';
-
-          if (mine.text || mine.imageURL || mine.audioURL) {
-            out += `<details><summary>${renderStyledName(username, modes[username])}'s Reward</summary>`;
-            if (mine.text) out += `<p><strong>Text:</strong> ${mine.text}</p>`;
-            if (mine.imageURL) out += `<p><img class="greyscale" src="${mine.imageURL}" alt="${mine.alt || 'image'}" /></p>`;
-            if (mine.audioURL) out += `<p><audio controls src="${mine.audioURL}"></audio></p>`;
-            out += `</details>`;
-          }
-
-          if (theirs.text || theirs.imageURL || theirs.audioURL) {
-            out += `<details><summary>${renderStyledName(partner, modes[partner])}'s Reward</summary>`;
-            if (theirs.text) out += `<p><strong>Text:</strong> ${theirs.text}</p>`;
-            if (theirs.imageURL) out += `<p><img class="greyscale" src="${theirs.imageURL}" alt="${theirs.alt || 'image'}" /></p>`;
-            if (theirs.audioURL) out += `<p><audio controls src="${theirs.audioURL}"></audio></p>`;
-            out += `</details>`;
-          }
-
-          return out || '<p>(No rewards found)</p>';
-        }
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        timeline.innerHTML = '<p style="color:#ff6666;">You must be logged in to view your story.</p>';
+        return;
       }
-    ];
 
-    const modesRef = ref(db, `matches/${matchID}/modes`);
-    get(modesRef).then(modesSnap => {
-      const modes = modesSnap.val() || {};
+      const currentUserId = user.uid;
+      if (!matchID) {
+        timeline.innerHTML = '<p style="color:#ff6666;">No match ID found.</p>';
+        return;
+      }
+
+      // Get users data to map UIDs to usernames
+      const usersSnap = await get(ref(db, `matches/${matchID}/users`));
+      const usersData = usersSnap.val() || {};
+      const partnerUID = Object.keys(usersData).find(uid => uid !== currentUserId);
+
+      if (!partnerUID) {
+        timeline.innerHTML = '<p style="color:#ff6666;">Partner data not found.</p>';
+        return;
+      }
+
+      const myUsername = usersData[currentUserId];
+      const partnerUsername = usersData[partnerUID];
+
+      // Get modes data (stored by UID)
+      const modesSnap = await get(ref(db, `matches/${matchID}/modes`));
+      const modesData = modesSnap.val() || {};
+
+      // Map modes by username for rendering
+      const modesByUsername = {};
+      modesByUsername[myUsername] = modesData[currentUserId]?.mode || 'normal';
+      modesByUsername[partnerUsername] = modesData[partnerUID]?.mode || 'normal';
+
+      function renderStyledName(name, mode) {
+        return `<strong class="woobie-${mode}">${name}</strong>`;
+      }
+
+      const sections = [
+        {
+          key: 'bios',
+          label: '🧬 Bios',
+          render: (data) => {
+            return `<p>${renderStyledName(myUsername, modesByUsername[myUsername])}: ${data[currentUserId] || '(no bio)'}</p>
+                    <p>${renderStyledName(partnerUsername, modesByUsername[partnerUsername])}: ${data[partnerUID] || '(no bio)'}</p>`;
+          }
+        },
+        ...['tier1a', 'tier1b', 'tier2', 'tier3'].map(key => ({
+          key,
+          label: `Tier ${tierLabelMap[key]} Answers`,
+          render: (data) => {
+            let out = '';
+            const myRaw = data[currentUserId];
+            const theirRaw = data[partnerUID];
+
+            const myAnswers = Array.isArray(myRaw)
+              ? myRaw
+              : Array.isArray(myRaw?.answers)
+                ? myRaw.answers
+                : [];
+
+            const theirAnswers = Array.isArray(theirRaw)
+              ? theirRaw
+              : Array.isArray(theirRaw?.answers)
+                ? theirRaw.answers
+                : [];
+
+            if (!myAnswers.length && !theirAnswers.length) {
+              return '<p>(No answers available yet)</p>';
+            }
+
+            myAnswers.forEach((ans, i) => {
+              out += `<p><strong>Q${i + 1}</strong></p>`;
+              out += `<p>${renderStyledName(myUsername, modesByUsername[myUsername])}: ${ans?.value || ans || ''}</p>`;
+              out += `<p>${renderStyledName(partnerUsername, modesByUsername[partnerUsername])}: ${theirAnswers[i]?.value || theirAnswers[i] || ''}</p>`;
+            });
+
+            return out;
+          }
+        })),
+        {
+          key: 'tier1bLetters',
+          label: '💌 Tier 1B Letters',
+          render: (data) => {
+            return `<details><summary>${renderStyledName(myUsername, modesByUsername[myUsername])}'s Letter</summary><p>${data[currentUserId] || '(no message)'}</p></details>
+                    <details><summary>${renderStyledName(partnerUsername, modesByUsername[partnerUsername])}'s Letter</summary><p>${data[partnerUID] || '(no message)'}</p></details>`;
+          }
+        },
+        {
+          key: 'tier2Rewards',
+          label: '🎁 Tier 2 Rewards',
+          render: (data) => {
+            const mine = data[currentUserId] || {};
+            const theirs = data[partnerUID] || {};
+            let out = '';
+
+            if (mine.text || mine.imageURL || mine.audioURL) {
+              out += `<details><summary>${renderStyledName(myUsername, modesByUsername[myUsername])}'s Reward</summary>`;
+              if (mine.text) out += `<p><strong>Text:</strong> ${mine.text}</p>`;
+              if (mine.imageURL) out += `<p><img class="greyscale" src="${mine.imageURL}" alt="${mine.alt || 'image'}" /></p>`;
+              if (mine.audioURL) out += `<p><audio controls src="${mine.audioURL}"></audio></p>`;
+              out += `</details>`;
+            }
+
+            if (theirs.text || theirs.imageURL || theirs.audioURL) {
+              out += `<details><summary>${renderStyledName(partnerUsername, modesByUsername[partnerUsername])}'s Reward</summary>`;
+              if (theirs.text) out += `<p><strong>Text:</strong> ${theirs.text}</p>`;
+              if (theirs.imageURL) out += `<p><img class="greyscale" src="${theirs.imageURL}" alt="${theirs.alt || 'image'}" /></p>`;
+              if (theirs.audioURL) out += `<p><audio controls src="${theirs.audioURL}"></audio></p>`;
+              out += `</details>`;
+            }
+
+            return out || '<p>(No rewards found)</p>';
+          }
+        }
+      ];
 
       for (const section of sections) {
         const refPath =
@@ -161,7 +191,6 @@
         get(dataRef).then(snap => {
           const data = snap.val();
           if (!data || Object.keys(data).length < 1) return;
-          const partner = typeof data === 'object' && Object.keys(data).find(k => k !== username);
 
           const block = document.createElement('details');
           const summary = document.createElement('summary');
@@ -170,9 +199,10 @@
 
           const content = document.createElement('div');
           try {
-            content.innerHTML = section.render(data, partner, modes);
+            content.innerHTML = section.render(data);
           } catch (err) {
             content.innerHTML = '<p style="color:#ff6666">Error displaying this section.</p>';
+            console.error('Error rendering section:', err);
           }
 
           block.appendChild(content);

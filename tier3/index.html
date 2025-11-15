@@ -193,8 +193,15 @@
           storyContent.innerHTML = '<p>Loading...</p>';
 
           try {
-            const snapshot = await get(ref(db, `matches/${matchID}/tier3`));
-            const data = snapshot.val() || {};
+            // Fetch both questions and answers
+            const [questionsSnap, answersSnap] = await Promise.all([
+              get(ref(db, `matches/${matchID}/tier3Questions`)),
+              get(ref(db, `matches/${matchID}/tier3`))
+            ]);
+
+            const questions = questionsSnap.val() || [];
+            const data = answersSnap.val() || {};
+
             // Find partner by UID
             const partnerUID = Object.keys(data).find(uid => uid !== currentUserId);
             if (!partnerUID) {
@@ -204,21 +211,6 @@
 
             const mine = data[currentUserId]?.answers || [];
             const theirs = data[partnerUID]?.answers || [];
-
-            const questions = [
-              "What's a belief you held strongly that changed over time?",
-              "What's one thing you never get tired of talking about?",
-              "When have you felt the most brave?",
-              "How do you handle emotional pain?",
-              "What do you wish someone had told you earlier in life?",
-              "What kind of people do you feel safest around?",
-              "What's something you're currently working through internally?",
-              "When do you feel most vulnerable, and why?",
-              "What's a memory that always brings you comfort?",
-              "If your younger self met you now, what would they say?",
-              "What's a truth you've learned the hard way?",
-              "What's something you've forgiven yourself for?"
-            ];
 
             let html = '<h3>📘 Tier 3 Answers</h3>';
             questions.forEach((q, i) => {
