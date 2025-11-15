@@ -3,25 +3,311 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Welcome to Woobie</title>
+  <title>Woobie - Anti-Loneliness, One Friend at a Time</title>
+  <link href="https://fonts.bunny.net/css?family=atkinson-hyperlegible:700,400" rel="stylesheet">
   <link rel="stylesheet" href="./shared/style.css" />
+  <style>
+    :root{
+      --bg:#000; --green:#33FF33; --cyan:#00FFFF; --amber:#FFB000; --pink:#FF66FF;
+    }
+    body { background: #000; margin: 0; padding: 0; overflow-x: hidden; }
+    .hero-stage {
+      position: relative;
+      width: 100%;
+      height: 40vh;
+      min-height: 300px;
+      max-height: 500px;
+      background: #000;
+      margin-bottom: 2rem;
+    }
+    .hero-canvas-wrap {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    #hero-canvas { display: block; width: 100%; height: 100%; }
+    .scanlines {
+      position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.05), rgba(255,255,255,0.05) 1px,
+        rgba(0,0,0,0) 2px, rgba(0,0,0,0) 3px
+      );
+      mix-blend-mode: screen; opacity:.18;
+    }
+    .landing-content {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 1.5rem 3rem;
+      color: #33ff33;
+    }
+    .intro-text {
+      text-align: center;
+      font-size: 1.1rem;
+      line-height: 1.8;
+      margin-bottom: 2rem;
+      color: #00ffff;
+    }
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin: 2rem 0;
+      flex-wrap: wrap;
+    }
+    .cta-buttons .woobie-button {
+      min-width: 140px;
+      font-size: 1.1rem;
+      padding: 0.8rem 1.5rem;
+    }
+    .faq-section {
+      margin-top: 3rem;
+    }
+    .faq-section h2 {
+      text-align: center;
+      color: #33ff33;
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+    }
+    details {
+      margin-bottom: 1rem;
+      border: 1px solid #33ff33;
+      border-radius: 5px;
+      padding: 1rem;
+      background-color: rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    details:hover {
+      background-color: rgba(51, 255, 51, 0.05);
+      box-shadow: 0 0 10px rgba(51, 255, 51, 0.2);
+    }
+    details[open] {
+      background-color: rgba(51, 255, 51, 0.08);
+    }
+    summary {
+      font-weight: bold;
+      color: #33ff33;
+      font-size: 1.1rem;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      content: "▼";
+      font-size: 0.8rem;
+      transition: transform 0.2s;
+      color: #00ffff;
+    }
+    details[open] summary::after {
+      transform: rotate(180deg);
+    }
+    details p {
+      margin-top: 1rem;
+      line-height: 1.7;
+      color: #fff;
+    }
+    details p strong {
+      color: #00ffff;
+    }
+    .already-member {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(51, 255, 51, 0.3);
+      color: #aaa;
+    }
+    .already-member a {
+      color: #00ffff;
+      text-decoration: none;
+      border-bottom: 1px solid #00ffff;
+    }
+    .already-member a:hover {
+      color: #33ff33;
+      border-bottom-color: #33ff33;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Welcome to Woobie 💬</h1>
-    <p>Your journey to meaningful connection starts here.</p>
-    <button id="start-button" class="woobie-button">Start Now ➡️</button>
+  <!-- Hero with animated logo -->
+  <div class="hero-stage">
+    <div class="hero-canvas-wrap">
+      <canvas id="hero-canvas"></canvas>
+      <div class="scanlines"></div>
+    </div>
+  </div>
 
-    <!-- Log out button will be visible only when logged in -->
-    <button id="logout-button" class="woobie-button" style="margin-top: 1rem;">🚪 Log out</button>
+  <!-- Main content -->
+  <div class="landing-content">
+    <div class="intro-text">
+      <p><strong>Woobie</strong> is a friendship-matching platform designed to help you make one genuine friend at a time.</p>
+      <p>No endless swiping. No ghosting. Just meaningful conversations with people who share your vibe.</p>
+    </div>
+
+    <div class="cta-buttons">
+      <button id="signup-btn" class="woobie-button">Sign Up</button>
+      <button id="login-btn" class="woobie-button">Log In</button>
+    </div>
+
+    <!-- FAQ Accordions -->
+    <div class="faq-section">
+      <h2>How It Works</h2>
+
+      <details>
+        <summary>What is Woobie?</summary>
+        <p>Woobie is an <strong>anti-loneliness platform</strong> focused on helping you make real friends, one person at a time. We match you based on shared interests and values, then guide you through meaningful conversations in stages called "tiers."</p>
+      </details>
+
+      <details>
+        <summary>How does matching work?</summary>
+        <p>After you sign up and create your profile (interests, dealbreakers, bio), we match you with <strong>one person</strong> who shares your interests and is looking for the same kind of connection. You both get a fun, anonymous "Woobie name" to start.</p>
+      </details>
+
+      <details>
+        <summary>What are Tiers?</summary>
+        <p><strong>Tiers</strong> are conversation stages that help you get to know your match gradually:</p>
+        <p><strong>Tier 1:</strong> Light questions about your personality and values<br>
+        <strong>Tier 2:</strong> Deeper questions and creative prompts<br>
+        <strong>Tier 3:</strong> Vulnerable sharing and emotional connection<br>
+        <strong>Chatroom:</strong> Once you both decide to continue, you unlock a private chatroom to chat freely!</p>
+      </details>
+
+      <details>
+        <summary>Is it anonymous?</summary>
+        <p>Yes! You start with a fun <strong>Woobie name</strong> (like "Cosmic Gentle Phoenix"). You choose when—or if—you want to share your real identity or contact info. It's all about taking things at your own pace.</p>
+      </details>
+
+      <details>
+        <summary>What if I don't click with my match?</summary>
+        <p>At the end of each tier, you and your match both vote on whether to continue. If either person votes "no," the match ends respectfully, and you can get matched with someone new. <strong>No pressure, no awkwardness.</strong></p>
+      </details>
+
+      <details>
+        <summary>Is Woobie free?</summary>
+        <p>Yes! Woobie is completely free to use. We're focused on building genuine connections, not making money off loneliness.</p>
+      </details>
+
+      <details>
+        <summary>Who is Woobie for?</summary>
+        <p>Woobie is for anyone looking to make a real friend—whether you're new to a city, feeling isolated, going through a life transition, or just want to meet someone who gets you. <strong>Friendship-focused, no dating pressure.</strong></p>
+      </details>
+    </div>
+
+    <div class="already-member">
+      <p>Already have an account? <a href="/auth/login.html">Log in here</a></p>
+    </div>
   </div>
 
   <script type="module" src="./router.js"></script>
   <script type="module" src="./shared/logout.js"></script>
   <script>
-    document.getElementById('start-button').onclick = () => {
-      window.location.href = './auth/login.html';
+    // Button handlers
+    document.getElementById('signup-btn').onclick = () => {
+      window.location.href = '/auth/signup.html';
     };
+    document.getElementById('login-btn').onclick = () => {
+      window.location.href = '/auth/login.html';
+    };
+
+    // ========== ANIMATED LOGO ==========
+    const CONFIG = {
+      text: 'Woobie',
+      subtext: 'anti-loneliness • one friend at a time',
+      palette: ['#33FF33','#00FFFF','#FFB000','#FF66FF'],
+      colorCycleSeconds: 10,
+      glowBase: 0.6,
+      glowBreathAmp: 0.22,
+      glowPulseSeconds: 3.2,
+      subtextScale: 0.18
+    };
+
+    const canvas = document.getElementById('hero-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resize(){
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Color helpers
+    const pal = CONFIG.palette.map(hex => {
+      const m = hex.replace('#','');
+      return { r:parseInt(m.slice(0,2),16), g:parseInt(m.slice(2,4),16), b:parseInt(m.slice(4,6),16) };
+    });
+    const lerp=(a,b,t)=>a+(b-a)*t;
+    function paletteColor(t){
+      const n = pal.length;
+      const pos = (t*n)%n;
+      const i = Math.floor(pos), j = (i+1)%n, f = pos - i;
+      return {
+        r: lerp(pal[i].r, pal[j].r, f),
+        g: lerp(pal[i].g, pal[j].g, f),
+        b: lerp(pal[i].b, pal[j].b, f)
+      };
+    }
+    const rgb = (o,a=1)=>`rgba(${o.r|0},${o.g|0},${o.b|0},${a})`;
+
+    function drawText(text, x, y, sizePx, col, breath){
+      ctx.font = `700 ${sizePx}px 'Atkinson Hyperlegible', Arial, sans-serif`;
+      // soft glow layers
+      for(let i=5;i>=1;i--){
+        ctx.shadowColor = col;
+        ctx.shadowBlur = i*6;
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillText(text, x, y);
+      }
+      // edge stroke
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = Math.max(1.2, sizePx*0.03);
+      ctx.strokeStyle = col;
+      ctx.strokeText(text, x, y);
+      // fill
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = col;
+      ctx.fillText(text, x, y);
+      ctx.globalAlpha = 1;
+    }
+
+    function loop(ts){
+      requestAnimationFrame(loop);
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0,0,w,h);
+
+      const tCycle = (ts/1000)/CONFIG.colorCycleSeconds % 1;
+      const col = paletteColor(tCycle);
+      const color = rgb(col,1);
+      const breath = CONFIG.glowBase + CONFIG.glowBreathAmp * (0.5 + 0.5*Math.sin((ts/1000) * (Math.PI*2/CONFIG.glowPulseSeconds)));
+
+      const minSide = Math.min(w,h);
+      const mainPx = Math.max(42, Math.min(220, minSide*0.18));
+      const subPx = Math.max(12, mainPx * CONFIG.subtextScale);
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const cx = w/2, cy = h*0.5;
+
+      // main
+      drawText(CONFIG.text, cx, cy, mainPx, color, breath);
+      // sub
+      ctx.globalAlpha = 0.9;
+      drawText(CONFIG.subtext, cx, cy + mainPx*0.62, subPx, color, breath);
+      ctx.globalAlpha = 1;
+    }
+    requestAnimationFrame(loop);
   </script>
 </body>
 </html>
