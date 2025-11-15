@@ -336,9 +336,8 @@
           <label for="chat-image-alt" style="color:#33ff33; display:block; margin-top:1rem;">Alt text (140 characters):</label>
           <input type="text" id="chat-image-alt" maxlength="140" style="width:100%; margin-bottom:1rem;" />
 
-          <div style="display:flex; justify-content:space-between; margin-top:1rem;">
+          <div style="display:flex; justify-content:center; margin-top:1rem;">
             <button id="chat-cancel-upload" class="close-adjust" style="background:#222; color:#ff3333; padding:0.5rem 1rem; border:1px solid #ff3333;">Cancel</button>
-            <button id="chat-send-upload" style="background:#000; color:#33ff33; padding:0.5rem 1rem; border:1px solid #33ff33;">Send Image →</button>
           </div>
         </div>
       </div>
@@ -391,11 +390,7 @@
       document.querySelectorAll('h3').forEach(header => {
         header.innerHTML = replaceEmojiWithMonochrome(header.textContent);
       });
-      
-      // Process send image button - manually handle the arrow
-      const sendImageBtn = document.getElementById('chat-send-upload');
-      sendImageBtn.innerHTML = `Send Image <span class="woobie-emoji">→</span>`;
-      
+
       // Process finalize button
       const submitBtn = document.getElementById('submit-reward');
       submitBtn.innerHTML = replaceEmojiWithMonochrome(submitBtn.textContent);

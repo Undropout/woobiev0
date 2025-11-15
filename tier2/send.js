@@ -63,7 +63,6 @@ onAuthStateChanged(auth, async (user) => {
   const outputWhite = document.getElementById('output-white');
   const altInput = document.getElementById('chat-image-alt');
   const colorButtons = document.querySelectorAll('.color-btn');
-  const sendBtn = document.getElementById('chat-send-upload');
   const textInput = document.getElementById('reward-text');
   const audioPreview = document.getElementById('audio-preview');
   const statusMsg = document.getElementById('status-msg');
@@ -215,15 +214,6 @@ onAuthStateChanged(auth, async (user) => {
       r: (bigint >> 16) & 255,
       g: (bigint >> 8) & 255,
       b: bigint & 255
-    };
-  }
-
-  if (sendBtn) {
-    sendBtn.onclick = () => {
-      if (statusMsg) {
-        statusMsg.textContent = 'Image ready. Click "Finalize & Send All" to complete submission.';
-        statusMsg.style.color = '#33ff33';
-      }
     };
   }
 
