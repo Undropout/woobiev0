@@ -10,7 +10,7 @@ Woobie is a matchmaking web application with a multi-tier interaction system. Us
 - Frontend: Vanilla JavaScript (ES6 modules), Vite for dev/build
 - Backend: Firebase (Realtime Database, Auth, Cloud Functions v2, Storage)
 - Email: SendGrid
-- Deployment: GitHub Pages for frontend, Firebase for backend
+- Deployment: **FIREBASE HOSTING ONLY** (NOT GitHub Pages - we stopped using GitHub Pages ages ago)
 
 ## Development Commands
 
@@ -27,10 +27,9 @@ npm run build
 
 # Preview production build
 npm run preview
-
-# Deploy frontend to GitHub Pages
-npm run deploy
 ```
+
+**IMPORTANT: DO NOT use `npm run deploy` - we deploy via Firebase Hosting, not GitHub Pages!**
 
 ### Firebase Functions Development
 ```bash
@@ -53,20 +52,36 @@ npm run deploy
 npm run logs
 ```
 
-### Firebase CLI Commands
+### Deployment to Production
+
+**CRITICAL: We use Firebase Hosting ONLY. GitHub Pages is NOT used.**
+
 ```bash
-# Login to Firebase
+# Login to Firebase (first time only)
 firebase login
 
-# Deploy everything
+# Deploy EVERYTHING (hosting + functions + database rules)
 firebase deploy
 
-# Deploy only functions
+# Deploy only hosting (frontend)
+firebase deploy --only hosting
+
+# Deploy only functions (backend)
 firebase deploy --only functions
 
-# Deploy only hosting
-firebase deploy --only hosting
+# Deploy only database rules
+firebase deploy --only database
+
+# Deploy specific function
+firebase deploy --only functions:advancedMatchmaker
 ```
+
+**Standard deployment workflow:**
+1. Make changes to code
+2. Test locally with `npm run dev`
+3. Build: `npm run build` (builds to `/dist` folder)
+4. Deploy: `firebase deploy --only hosting`
+5. Verify at production URL
 
 ## Architecture & Data Flow
 
@@ -223,3 +238,10 @@ No automated test suite exists. Manual testing workflow:
 2. Run `cd functions && npm run serve` for local Firebase emulators
 3. Test matchmaking by creating two accounts in separate browsers/incognito windows
 4. Check Cloud Functions logs with `firebase functions:log` or in Firebase Console
+
+## Post-Compression Verification
+
+**IMPORTANT:** If you're Claude starting a new session after context window compression:
+- Read `VERIFICATION_CHECKLIST.md` to verify critical implementations are still intact
+- This checklist helps prevent accidentally reverting working features
+- Run through relevant sections before making changes
