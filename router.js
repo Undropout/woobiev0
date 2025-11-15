@@ -5,10 +5,13 @@ import { onAuthStateChanged } from 'firebase/auth';
 document.addEventListener('DOMContentLoaded', () => {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
-      // If not on login/signup page already, redirect to login
+      // Allow landing page, login, and signup to be viewed without authentication
+      // Redirect all other pages to login
       if (
         !window.location.pathname.includes('/auth/login.html') &&
-        !window.location.pathname.includes('/auth/signup.html')
+        !window.location.pathname.includes('/auth/signup.html') &&
+        window.location.pathname !== '/' &&
+        window.location.pathname !== '/index.html'
       ) {
         window.location.href = '/auth/login.html';
       }
