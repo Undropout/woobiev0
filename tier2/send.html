@@ -15,8 +15,13 @@
     .has-image .image-adjust-layout {
       flex-direction: row;
       align-items: flex-start;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
       gap: 2rem;
+    }
+
+    .image-description-box {
+      flex-basis: 100%;
+      width: 100%;
     }
 
     .image-preview-block {
@@ -317,6 +322,10 @@
       <input type="file" id="image-upload" accept="image/*">
 
       <div class="image-adjust-layout" id="image-adjust-wrap" style="display:none;">
+        <div class="image-description-box" style="padding:1rem; border:1px solid #666; background:#111;">
+          <p style="color:#33ff33; margin:0 0 0.5rem 0;">Woobie transforms images into impressions—the way they looked back before social media and the internet, when things were good. Use the sliders to adjust your photo to make it more readable and recognizable.</p>
+          <p style="color:#999; margin:0; font-size:0.9rem;"><em>(*Don't worry: You'll be able to unlock color images later as the two of you build your friendship)</em></p>
+        </div>
         <div class="image-preview-block">
           <canvas id="chat-preview-canvas" width="128" height="128" style="border:1px solid #33ff33;"></canvas>
           <div id="color-buttons" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">

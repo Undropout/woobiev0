@@ -3,25 +3,634 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Welcome to Woobie</title>
-  <script type="module" crossorigin src="/assets/main-BzUYb3JT.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/firebase-config-CQBF9bbN.js">
-  <link rel="modulepreload" crossorigin href="/assets/logout-BHqC0Y9t.js">
+  <title>Woobie - Build Real Friendships Through Shared Vulnerability</title>
+  <style>
+    body {
+      overflow-x: hidden;
+    }
+
+    /* Logo section */
+    .logo-section {
+      padding: 3rem 0 2rem;
+      text-align: center;
+      position: relative;
+      background: #000000;
+      z-index: 100;
+      width: 100%;
+    }
+
+    .logo-container {
+      position: relative;
+      display: inline-block;
+      margin: 0 auto;
+      min-height: 150px;
+      min-width: 400px;
+    }
+
+    #logo {
+      font-size: 20px;
+      line-height: 1.2;
+      white-space: pre;
+      font-weight: bold;
+      letter-spacing: -1px;
+      position: relative;
+      z-index: 2;
+      font-family: monospace;
+      text-align: left;
+    }
+
+    /* Neon glow layers */
+    .glow-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      white-space: pre;
+      font-weight: bold;
+      letter-spacing: -1px;
+      font-family: monospace;
+      text-align: left;
+      pointer-events: none;
+    }
+
+    .glow-1 {
+      filter: blur(4px);
+      opacity: 0.8;
+      z-index: 1;
+    }
+
+    .glow-2 {
+      filter: blur(8px);
+      opacity: 0.6;
+      z-index: 0;
+    }
+
+    .glow-3 {
+      filter: blur(16px);
+      opacity: 0.4;
+      z-index: -1;
+    }
+
+    /* Sparkle stars */
+    .sparkle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: white;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: sparkle-twinkle 1.5s infinite;
+      box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    .sparkle::before,
+    .sparkle::after {
+      content: '';
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .sparkle::before {
+      width: 2px;
+      height: 8px;
+      top: -2px;
+      left: 1px;
+    }
+
+    .sparkle::after {
+      width: 8px;
+      height: 2px;
+      top: 1px;
+      left: -2px;
+    }
+
+    @keyframes sparkle-twinkle {
+      0%, 100% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1) rotate(180deg);
+      }
+    }
+
+    /* Hero section */
+    .hero {
+      text-align: center;
+      padding: 1rem 0 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      color: #33ff33;
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .hero p {
+      color: #fff;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+
+    .cta-button {
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: 2px solid #33ff33;
+      background: #000;
+      color: #33ff33;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-decoration: none;
+      display: inline-block;
+      font-family: 'Atkinson Hyperlegible', monospace;
+    }
+
+    .cta-button:hover {
+      background: #33ff33;
+      color: #000;
+      box-shadow: 0 0 20px #33ff33;
+    }
+
+    .cta-button.secondary {
+      border-color: #00ffff;
+      color: #00ffff;
+    }
+
+    .cta-button.secondary:hover {
+      background: #00ffff;
+      color: #000;
+      box-shadow: 0 0 20px #00ffff;
+    }
+
+    /* Content sections */
+    .content-section {
+      max-width: 800px;
+      margin: 0 auto 3rem;
+      padding: 2rem;
+      border: 1px solid #33ff33;
+      background: #0a0a0a;
+    }
+
+    .content-section h2 {
+      color: #33ff33;
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+
+    .content-section p {
+      color: #fff;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .content-section em {
+      color: #00ffff;
+    }
+
+    .content-section strong {
+      color: #33ff33;
+    }
+
+    /* Collapsible sections */
+    details {
+      margin-bottom: 1rem;
+      border: 1px solid #33ff33;
+      padding: 1rem;
+      background: #111;
+    }
+
+    summary {
+      color: #33ff33;
+      cursor: pointer;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    summary:hover {
+      color: #00ffff;
+    }
+
+    details > div {
+      color: #fff;
+      margin-top: 1rem;
+      line-height: 1.6;
+    }
+
+    details p {
+      margin-bottom: 0.5rem;
+    }
+
+    details ul {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+
+    details li {
+      margin-bottom: 0.5rem;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      border-top: 1px solid #33ff33;
+      margin-top: 3rem;
+    }
+
+    .footer a {
+      color: #00ffff;
+      text-decoration: none;
+      margin: 0 0.5rem;
+    }
+
+    .footer a:hover {
+      color: #33ff33;
+      text-shadow: 0 0 3px #33ff33;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .logo-section {
+        text-align: center;
+        padding: 1.5rem 0 1rem;
+      }
+
+      .logo-container {
+        display: inline-block;
+        margin: 0 auto;
+        min-width: unset;
+        min-height: 90px;
+        width: auto;
+      }
+
+      #logo {
+        font-size: 12px;
+        font-family: monospace;
+        text-align: left;
+      }
+
+      .glow-layer {
+        font-size: 12px;
+        font-family: monospace;
+        text-align: left;
+      }
+
+      .hero h1 {
+        font-size: 1.4rem;
+      }
+
+      .hero p {
+        font-size: 1rem;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .cta-button {
+        width: 100%;
+        max-width: 300px;
+      }
+
+      .content-section {
+        padding: 1rem;
+      }
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, #33ff33, transparent);
+      margin: 2rem 0;
+    }
+  </style>
   <link rel="stylesheet" crossorigin href="/assets/style-DdkmcSxD.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Welcome to Woobie 💬</h1>
-    <p>Your journey to meaningful connection starts here.</p>
-    <button id="start-button" class="woobie-button">Start Now ➡️</button>
-
-    <!-- Log out button will be visible only when logged in -->
-    <button id="logout-button" class="woobie-button" style="margin-top: 1rem;">🚪 Log out</button>
+  <!-- Animated Logo -->
+  <div class="logo-section">
+    <div class="logo-container">
+      <div id="logo"></div>
+      <div class="glow-layer glow-1" id="glow1"></div>
+      <div class="glow-layer glow-2" id="glow2"></div>
+      <div class="glow-layer glow-3" id="glow3"></div>
+    </div>
   </div>
-
+
+  <div class="container">
+    <!-- Hero Section -->
+    <div class="hero">
+      <h1>Build Real Friendships Through Shared Vulnerability</h1>
+      <p>Woobie isn't a dating app. It's a space for genuine human connection—where you build trust, share authentically, and discover real friendship at your own pace.</p>
+
+      <div class="cta-buttons">
+        <a href="/auth/signup.html" class="cta-button">Get Started →</a>
+        <a href="/auth/login.html" class="cta-button secondary">Login</a>
+      </div>
+    </div>
+
+    <!-- What is Woobie -->
+    <div class="content-section">
+      <h2>💡 What Is Woobie?</h2>
+      <p>Woobie isn't a dating app or hookup platform. There are <em>plenty</em> of those out there already.</p>
+      <p>This is a space for building <strong>genuine connections</strong> through shared vulnerability and trust. Whether you're looking to make a new friend or explore a deeper connection, Woobie creates a safe, intentional path to authentic human closeness.</p>
+      <p>You'll move through <strong>3 tiers together, 12 questions each</strong>, sharing more of yourselves as you go. <strong style="color:#00ffff;">No pressure, no performance.</strong></p>
+      <p>This is about two people getting to know each other at a pace that feels right.</p>
+      <p>The more you stick your neck out, the more your partner feels safe to stick their neck out, and you feel bonds of trust grow.</p>
+      <p><em>Take your time. Be yourself. See what happens.</em></p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- How It Works -->
+    <div class="content-section">
+      <h2>📊 How Matching Works</h2>
+      <p>• Matching is based on <strong>shared interests + your gender preferences</strong></p>
+      <p>• You don't have to declare your gender (optional)</p>
+      <p>• We match you with people who identified as your preference</p>
+      <p>• <em>"This keeps the focus on personality, not appearance"</em></p>
+      <p>• <strong>Current rule:</strong> At least 1 common interest required</p>
+    </div>
+
+    <!-- The Tiers -->
+    <div class="content-section">
+      <h2>📈 The Tiers Explained</h2>
+
+      <details>
+        <summary>Tier 0: Your Bio</summary>
+        <div>
+          <p>Type a bio. This will be kept safe until you're done with Tier 1a.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Tier 1a: First Questions (6)</summary>
+        <div>
+          <p>6 randomly-selected text-based questions about you. At the end of Tier 1a, your answers and your partner's answers will be exchanged. If you both vote to continue, you'll get to read each others' bios.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Tier 1b: Deeper Questions (6)</summary>
+        <div>
+          <p>6 more randomly-selected text-based questions about you. At the end of Tier 1b, your answers and your partner's answers will be exchanged. If you both vote to continue, you'll have the opportunity to send a direct message for the first time. (Optional, 250 words/2000 characters maximum).</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Tier 2: Creative Expression (12)</summary>
+        <div>
+          <p>If Tier 1 was "let me tell you about myself", tier 2 has some "tell me what you've noticed about me" mixed in. At the end of Tier 2, you'll be given the opportunity to send a direct message (250 words/2000 characters max), and/or an image (which will be downgraded to match our pre-social-media aesthetic), and/or a voice message.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Tier 3: Building Together (12)</summary>
+        <div>
+          <p>If Tier 1 was "This is me", and Tier 2 was "This is you", Tier 3 is more like "This is Us". After Tier 3, if you both vote to continue, you'll be given access to a chatroom where you can send as many direct messages as you like.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Chatroom: Your Space</summary>
+        <div>
+          <p>Stay as long as you like, or exchange contact info and ride off into your new adventures as friends together! You can send messages and a limited number of images and voice messages.</p>
+          <p style="margin-top:1rem;"><em>"You move at your own pace. No rush."</em></p>
+        </div>
+      </details>
+    </div>
+
+    <!-- FAQ -->
+    <div class="content-section">
+      <h2>❓ Frequently Asked Questions</h2>
+
+      <details>
+        <summary>Is this a dating app?</summary>
+        <div>
+          <p>No. It's not like dating is bad; there are just billions of dating apps and don't come here looking for one because your partner probably isn't. This is an app where you learn to connect on a level no other app makes happen. This is a treatment for loneliness and to build a friendship with bonds of trust.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Can I match with multiple people?</summary>
+        <div>
+          <p>Kinda. (in a future update, yes. While this is about building quality connections, not quantities, we understand if you're looking for more friends and there's nothing wrong with that; technically, that's why we all come to Woobie. For now, you can sign up with a different email if you'd like to pair with more than one person in a separate 1-on-1 friendship)</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>What if the match doesn't work out?</summary>
+        <div>
+          <p>You can rematch. Either party can end the friendship when voting in-between tiers. No need to explain, no need to apologize, no need to assign blame. We'll let them know that there are billions of reasons another party would choose not to continue, the vast majority of which are not anyone's fault.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Is my data private?</summary>
+        <div>
+          <p>Yes. We chose to found a nonprofit so no one could ever pressure us to do anything profitable or creepy with your data. No one but you and your partner knows anything about the two of you.</p>
+        </div>
+      </details>
+    </div>
+
+    <!-- Final CTA -->
+    <div style="text-align: center; margin: 3rem 0;">
+      <h2 style="color: #33ff33; margin-bottom: 1.5rem;">Ready to Build Something Real?</h2>
+      <div class="cta-buttons">
+        <a href="/auth/signup.html" class="cta-button">Create Your Account →</a>
+        <a href="/auth/login.html" class="cta-button secondary">I Already Have an Account</a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p style="color:#99ff99; margin-bottom:0.5rem;">
+        <a href="#" id="privacy-link">Privacy Policy</a> •
+        <a href="#" id="tos-link">Terms of Service</a>
+      </p>
+      <p style="color:#666; font-size:0.85rem;">Woobie is a nonprofit dedicated to fighting loneliness.</p>
+    </div>
+  </div>
+
+  <!-- Privacy Policy Modal (keeping from login.html) -->
+  <div id="privacy-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:9999; padding:2rem; overflow:auto;">
+    <div style="max-width:700px; margin:0 auto; background:#000; border:2px solid #33ff33; border-radius:10px; padding:2rem;">
+      <h2 style="color:#33ff33; margin-top:0;">🔒 Privacy Policy</h2>
+      <p style="color:#fff; font-size:0.9rem; font-style:italic; margin-bottom:1.5rem;">Last updated: January 2025</p>
+
+      <h3 style="color:#00ffff;">Our Commitment</h3>
+      <p style="color:#fff; line-height:1.6;">Woobie is a nonprofit dedicated to helping people build genuine friendships. We will never sell your data, show you ads, or do anything creepy with your information. Period.</p>
+
+      <h3 style="color:#00ffff;">What We Collect</h3>
+      <p style="color:#fff; line-height:1.6;">We collect only what we need to make Woobie work:</p>
+      <ul style="color:#fff; line-height:1.6;">
+        <li><strong style="color:#33ff33;">Account info:</strong> Email address and password (encrypted)</li>
+        <li><strong style="color:#33ff33;">Profile info:</strong> Woobie name, interests, dealbreakers, gender preferences, bio</li>
+        <li><strong style="color:#33ff33;">Interactions:</strong> Your answers to tier questions, messages with your partner, votes, images/voice notes you share</li>
+        <li><strong style="color:#33ff33;">Technical data:</strong> Firebase authentication tokens, session data</li>
+      </ul>
+
+      <h3 style="color:#00ffff;">Who Can See Your Data</h3>
+      <p style="color:#fff; line-height:1.6;"><strong style="color:#33ff33;">Only your partner.</strong> That's it. No one else—not other users, not us (except for technical troubleshooting if you request support), not advertisers.</p>
+
+      <h3 style="color:#00ffff;">How We Use Your Data</h3>
+      <ul style="color:#fff; line-height:1.6;">
+        <li>Match you with someone based on shared interests and preferences</li>
+        <li>Facilitate your friendship journey through the tier system</li>
+        <li>Send you email notifications (match found, partner completed a tier, etc.)</li>
+        <li>Improve Woobie's features and fix bugs</li>
+      </ul>
+
+      <h3 style="color:#00ffff;">Your Rights</h3>
+      <ul style="color:#fff; line-height:1.6;">
+        <li><strong style="color:#33ff33;">Access:</strong> You can view your profile data anytime</li>
+        <li><strong style="color:#33ff33;">Deletion:</strong> Email us at friends@woobie.fun to delete your account and all associated data</li>
+        <li><strong style="color:#33ff33;">Opt-out:</strong> Unsubscribe from emails anytime (we'll still send critical notifications)</li>
+      </ul>
+
+      <button id="close-privacy" class="woobie-button" style="width:100%; margin-top:1rem;">Close</button>
+    </div>
+  </div>
+
+  <!-- ToS Modal placeholder -->
+  <div id="tos-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:9999; padding:2rem; overflow:auto;">
+    <div style="max-width:700px; margin:0 auto; background:#000; border:2px solid #33ff33; border-radius:10px; padding:2rem;">
+      <h2 style="color:#33ff33; margin-top:0;">📜 Terms of Service</h2>
+      <p style="color:#fff;">Terms of Service coming soon.</p>
+      <button id="close-tos" class="woobie-button" style="width:100%; margin-top:1rem;">Close</button>
+    </div>
+  </div>
+
   <script>
-    document.getElementById('start-button').onclick = () => {
-      window.location.href = './auth/login.html';
+    // Logo animation - wrapped in DOMContentLoaded for safety
+    document.addEventListener('DOMContentLoaded', function() {
+      const logoText = `__        __          _     _
+\\ \\      / /__   ___ | |__ (_) ___
+ \\ \\ /\\ / / _ \\ / _ \\| '_ \\| |/ _ \\
+  \\ V  V / (_) | (_) | |_) | |  __/
+   \\_/\\_/ \\___/ \\___/|_.__/|_|\\___| `;
+
+      const prismaticColors = [
+        '#FF0080', '#FF0040', '#FF4400', '#FF8800', '#FFCC00', '#FFFF00',
+        '#CCFF00', '#88FF00', '#00FF00', '#00FF88', '#00FFCC', '#00FFFF',
+        '#00CCFF', '#0088FF', '#0044FF', '#0000FF', '#4400FF', '#8800FF',
+        '#CC00FF', '#FF00FF', '#FF00CC'
+      ];
+
+      let hueOffset = 0;
+      const logo = document.getElementById('logo');
+      const glow1 = document.getElementById('glow1');
+      const glow2 = document.getElementById('glow2');
+      const glow3 = document.getElementById('glow3');
+      const container = document.querySelector('.logo-container');
+
+      console.log('Logo element:', logo);
+      console.log('Container:', container);
+
+      logo.textContent = logoText;
+      glow1.textContent = logoText;
+      glow2.textContent = logoText;
+      glow3.textContent = logoText;
+
+      function applyPrismaticShimmer() {
+        const lines = logoText.split('\\n');
+        let coloredHTML = '';
+
+        lines.forEach((line, lineIndex) => {
+          let lineHTML = '';
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const position = (lineIndex * 10 + i + hueOffset) % prismaticColors.length;
+            const color = prismaticColors[Math.floor(position)];
+
+            if (char !== ' ') {
+              lineHTML += `<span style="color: ${color}; text-shadow: 0 0 10px ${color};">${char}</span>`;
+            } else {
+              lineHTML += char;
+            }
+          }
+          coloredHTML += lineHTML + '\n';
+        });
+
+        logo.innerHTML = coloredHTML;
+        glow1.innerHTML = coloredHTML;
+        glow2.innerHTML = coloredHTML;
+        glow3.innerHTML = coloredHTML;
+
+        hueOffset += 0.3;
+      }
+
+      function createSparkle() {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+
+        const bounds = container.getBoundingClientRect();
+        const x = Math.random() * bounds.width;
+        const y = Math.random() * bounds.height;
+
+        sparkle.style.left = x + 'px';
+        sparkle.style.top = y + 'px';
+
+        const color = prismaticColors[Math.floor(Math.random() * prismaticColors.length)];
+        sparkle.style.background = color;
+        sparkle.style.boxShadow = `0 0 8px 3px ${color}`;
+
+        sparkle.style.animationDelay = Math.random() * 1 + 's';
+        sparkle.style.animationDuration = (Math.random() * 1 + 1) + 's';
+
+        container.appendChild(sparkle);
+
+        setTimeout(() => {
+          sparkle.remove();
+        }, 3000);
+      }
+
+      function animate() {
+        applyPrismaticShimmer();
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+      setInterval(createSparkle, 300);
+
+      for (let i = 0; i < 10; i++) {
+        setTimeout(createSparkle, i * 100);
+      }
+    }); // End DOMContentLoaded
+
+    // Modal handlers
+    document.getElementById('privacy-link').onclick = (e) => {
+      e.preventDefault();
+      document.getElementById('privacy-modal').style.display = 'block';
+    };
+
+    document.getElementById('close-privacy').onclick = () => {
+      document.getElementById('privacy-modal').style.display = 'none';
+    };
+
+    document.getElementById('tos-link').onclick = (e) => {
+      e.preventDefault();
+      document.getElementById('tos-modal').style.display = 'block';
+    };
+
+    document.getElementById('close-tos').onclick = () => {
+      document.getElementById('tos-modal').style.display = 'none';
     };
   </script>
 </body>
