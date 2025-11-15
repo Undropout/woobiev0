@@ -181,45 +181,40 @@ async function initializeTier1a(currentUserId, currentMatchID, localWoobieUserna
       // Questions already exist for this match - use first 6 for tier1a
       const allTier1Questions = questionsSnap.val();
       questions = allTier1Questions.slice(0, 6);
+      console.log("Loaded existing tier1 questions from database");
     } else {
-      // Determine which user should generate questions (lexicographically first UID)
-      const usersSnap = await get(matchUsersRef);
-      const userUIDs = Object.keys(usersSnap.val() || {});
-      const shouldGenerate = userUIDs.length > 0 && userUIDs.sort()[0] === currentUserId;
+      // Questions don't exist yet - this user should generate them
+      // Always generate if questions don't exist (don't wait for partner)
+      console.log("No questions found, generating new randomized questions");
+      const shuffled = shuffleArray(questionBank);
+      const allTier1Questions = shuffled.slice(0, 12);
 
-      if (shouldGenerate) {
-        // This user is responsible for generating questions
-        const shuffled = shuffleArray(questionBank);
-        const allTier1Questions = shuffled.slice(0, 12);
+      try {
         await set(tier1QuestionsRef, allTier1Questions);
-        questions = allTier1Questions.slice(0, 6);
-        console.log("Generated new randomized questions for match:", currentMatchID);
-      } else {
-        // Wait for the other user to generate questions
-        console.log("Waiting for partner to generate tier1 questions...");
-        let attempts = 0;
-        while (attempts < 10) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          const retrySnap = await get(tier1QuestionsRef);
-          if (retrySnap.exists()) {
-            const allTier1Questions = retrySnap.val();
-            questions = allTier1Questions.slice(0, 6);
-            console.log("Loaded tier1 questions after waiting");
-            break;
-          }
-          attempts++;
-        }
-        if (questions.length === 0) {
-          console.warn("Timeout waiting for questions, using fallback");
-          questions = questionBank.slice(0, 6);
-        }
+        console.log("Successfully saved tier1 questions to database");
+      } catch (setError) {
+        console.warn("Failed to save questions to database:", setError);
+        // Continue anyway - we still have the questions locally
       }
+
+      questions = allTier1Questions.slice(0, 6);
+      console.log("Generated new randomized questions for match:", currentMatchID);
     }
   } catch (error) {
     console.error("Error loading questions:", error);
-    // Fallback to first 6 questions if there's an error
+    // Fallback to randomized questions if there's an error
+    const shuffled = shuffleArray(questionBank);
+    questions = shuffled.slice(0, 6);
+    console.log("Using fallback randomized questions due to error");
+  }
+
+  // Final safety check - ensure we always have questions
+  if (!questions || questions.length === 0) {
+    console.error("CRITICAL: Questions array is empty! Using hardcoded fallback");
     questions = questionBank.slice(0, 6);
   }
+
+  console.log(`[Tier1a] Initialized with ${questions.length} questions:`, questions.map((q, i) => `${i+1}. ${q.substring(0, 50)}...`));
 
   // Database references using UID as keys
   const userAnswersRef = ref(db, `matches/${currentMatchID}/tier1a/${currentUserId}`);
@@ -315,10 +310,25 @@ async function initializeTier1a(currentUserId, currentMatchID, localWoobieUserna
   }
 
   function showQuestion() {
+    // Safety check - if no questions somehow, show error
+    if (!questions || questions.length === 0) {
+      console.error("CRITICAL: showQuestion called but questions array is empty!");
+      if (questionBlock) questionBlock.style.display = 'none';
+      if (completionMessage) {
+        completionMessage.style.display = 'block';
+        completionMessage.innerHTML = `
+          <h2>Error Loading Questions</h2>
+          <p>There was a problem loading the questions. Please refresh the page or contact support.</p>
+          <button class="woobie-button" onclick="window.location.reload()">Refresh Page</button>
+        `;
+      }
+      return;
+    }
+
     if (currentIndex >= questions.length) {
       questionBlock.style.display = 'none';
       completionMessage.style.display = 'block';
-      
+
       // Save answers under the user's UID with metadata
       set(userAnswersRef, {
         answers,
@@ -339,7 +349,7 @@ async function initializeTier1a(currentUserId, currentMatchID, localWoobieUserna
       .catch(err => console.error("Error saving tier1a answers:", err));
       return;
     }
-    
+
     if (questionNumber) questionNumber.textContent = `Question ${currentIndex + 1} of ${questions.length}`;
     if (questionText) questionText.textContent = questions[currentIndex];
     if (answerInput) answerInput.value = answers[currentIndex]?.value || '';
