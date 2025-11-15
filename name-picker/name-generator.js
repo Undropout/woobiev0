@@ -1,6 +1,6 @@
 // name-picker/name-generator.js - FIXED: No emoji color override
 import { db, auth } from '../shared/firebase-config.js';
-import { ref, get, update } from 'firebase/database';
+import { ref, get, update, set } from 'firebase/database';
 import { onAuthStateChanged } from 'firebase/auth';
 
 import {
@@ -405,6 +405,217 @@ if (confirmButton) {
 
     const continueBtn = document.getElementById('continue-main-btn');
     if (continueBtn) continueBtn.style.display = 'block';
+  };
+}
+
+// Referral Code Functionality
+function generateReferralCode() {
+  const colors = ['purple', 'cosmic', 'stellar', 'neon', 'prismatic', 'amber', 'emerald', 'sapphire'];
+  const adjectives = ['quirky', 'bold', 'cheerful', 'lazy', 'witty', 'brave', 'curious', 'gentle'];
+  const animals = ['dolphin', 'unicorn', 'dragon', 'phoenix', 'tiger', 'panda', 'koala', 'owl'];
+
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
+
+  return `${color}-${adjective}-${animal}`;
+}
+
+// Generate Code button
+const generateCodeBtn = document.getElementById('generate-code-btn');
+const codeResult = document.getElementById('code-result');
+const generatedCodeP = document.getElementById('generated-code');
+const copyCodeBtn = document.getElementById('copy-code-btn');
+const proceedWithCodeBtn = document.getElementById('proceed-with-code-btn');
+
+if (generateCodeBtn) {
+  generateCodeBtn.onclick = async () => {
+    if (!currentUserId || !selected) {
+      alert('Please select a name first.');
+      return;
+    }
+
+    const code = generateReferralCode();
+    const woobieName = `${selected.label} ${selected.emoji}`;
+
+    try {
+      // Save referral code to database
+      const codeRef = ref(db, `referralCodes/${code}`);
+      await set(codeRef, {
+        code: code,
+        createdBy: currentUserId,
+        createdAt: Date.now(),
+        username: woobieName,
+        mode: selected.mode,
+        emoji: selected.emoji,
+        used: false,
+        expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+      });
+
+      // Save referral info to user profile
+      const userRef = ref(db, `users/${currentUserId}`);
+      await update(userRef, {
+        referralCodeID: code,
+        referralMode: 'waiting'
+      });
+
+      // Show the code
+      if (generatedCodeP) generatedCodeP.textContent = code;
+      if (codeResult) codeResult.style.display = 'block';
+      if (generateCodeBtn) generateCodeBtn.style.display = 'none';
+      const enterCodeBtn = document.getElementById('enter-code-btn');
+      if (enterCodeBtn) enterCodeBtn.style.display = 'none';
+
+      console.log(`Referral code generated: ${code}`);
+    } catch (error) {
+      console.error('Error generating referral code:', error);
+      alert('Could not generate code. Please try again.');
+    }
+  };
+}
+
+// Copy Code button
+if (copyCodeBtn) {
+  copyCodeBtn.onclick = () => {
+    const code = generatedCodeP?.textContent;
+    if (code) {
+      navigator.clipboard.writeText(code).then(() => {
+        copyCodeBtn.textContent = '✅ Copied!';
+        setTimeout(() => {
+          copyCodeBtn.textContent = '📋 Copy Code';
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy code. Please copy manually: ' + code);
+      });
+    }
+  };
+}
+
+// Proceed with code button (after generating)
+if (proceedWithCodeBtn) {
+  proceedWithCodeBtn.onclick = () => {
+    // Just proceed to continue button - code is already saved
+    const details = document.querySelector('#referral-section details');
+    if (details) details.open = false;
+  };
+}
+
+// Enter Code button
+const enterCodeBtn = document.getElementById('enter-code-btn');
+const codeEntry = document.getElementById('code-entry');
+const validateCodeBtn = document.getElementById('validate-code-btn');
+const cancelEntryBtn = document.getElementById('cancel-entry-btn');
+const friendCodeInput = document.getElementById('friend-code-input');
+const validationMessage = document.getElementById('validation-message');
+
+if (enterCodeBtn) {
+  enterCodeBtn.onclick = () => {
+    if (codeEntry) codeEntry.style.display = 'block';
+    if (generateCodeBtn) generateCodeBtn.style.display = 'none';
+    if (enterCodeBtn) enterCodeBtn.style.display = 'none';
+  };
+}
+
+if (cancelEntryBtn) {
+  cancelEntryBtn.onclick = () => {
+    if (codeEntry) codeEntry.style.display = 'none';
+    if (generateCodeBtn) generateCodeBtn.style.display = 'inline-block';
+    if (enterCodeBtn) enterCodeBtn.style.display = 'inline-block';
+    if (friendCodeInput) friendCodeInput.value = '';
+    if (validationMessage) validationMessage.textContent = '';
+  };
+}
+
+if (validateCodeBtn) {
+  validateCodeBtn.onclick = async () => {
+    const code = friendCodeInput?.value.trim().toLowerCase();
+
+    if (!code) {
+      if (validationMessage) validationMessage.textContent = '⚠️ Please enter a code';
+      validationMessage.style.color = '#ff6666';
+      return;
+    }
+
+    if (!currentUserId || !selected) {
+      alert('Please select a name first.');
+      return;
+    }
+
+    try {
+      // Check if code exists
+      const codeRef = ref(db, `referralCodes/${code}`);
+      const codeSnap = await get(codeRef);
+
+      if (!codeSnap.exists()) {
+        if (validationMessage) {
+          validationMessage.textContent = '❌ Invalid code';
+          validationMessage.style.color = '#ff6666';
+        }
+        return;
+      }
+
+      const codeData = codeSnap.val();
+
+      // Check if code is their own
+      if (codeData.createdBy === currentUserId) {
+        if (validationMessage) {
+          validationMessage.textContent = '⚠️ You cannot use your own code';
+          validationMessage.style.color = '#ff6666';
+        }
+        return;
+      }
+
+      // Check if already used
+      if (codeData.used) {
+        if (validationMessage) {
+          validationMessage.textContent = '❌ This code has already been used';
+          validationMessage.style.color = '#ff6666';
+        }
+        return;
+      }
+
+      // Check if expired
+      if (codeData.expiresAt && codeData.expiresAt < Date.now()) {
+        if (validationMessage) {
+          validationMessage.textContent = '❌ This code has expired';
+          validationMessage.style.color = '#ff6666';
+        }
+        return;
+      }
+
+      // Valid code! Mark as used and save to user
+      await update(codeRef, {
+        used: true,
+        usedBy: currentUserId,
+        usedAt: Date.now()
+      });
+
+      const userRef = ref(db, `users/${currentUserId}`);
+      await update(userRef, {
+        referralCodeID: code,
+        referralMode: 'claiming'
+      });
+
+      if (validationMessage) {
+        validationMessage.textContent = `✅ Code validated! You'll match with ${codeData.username}`;
+        validationMessage.style.color = '#33ff33';
+      }
+
+      // Hide the form after success
+      setTimeout(() => {
+        if (codeEntry) codeEntry.style.display = 'none';
+        const details = document.querySelector('#referral-section details');
+        if (details) details.open = false;
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error validating code:', error);
+      if (validationMessage) {
+        validationMessage.textContent = '❌ Error validating code. Please try again.';
+        validationMessage.style.color = '#ff6666';
+      }
+    }
   };
 }
 
