@@ -21,7 +21,7 @@
       width: 100%;
     }
 
-    /* ASCII Art Logo with Prismatic Shimmer */
+    /* ASCII Art Logo with Prismatic Shimmer and Neon Glow */
     #ascii-logo {
       font-family: monospace;
       font-size: clamp(0.5rem, 3vw, 1.2rem);
@@ -43,12 +43,45 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
       animation: shimmer 8s linear infinite;
-      filter: drop-shadow(0 0 20px rgba(51, 255, 51, 0.6));
+      filter: drop-shadow(0 0 20px rgba(51, 255, 51, 0.8))
+              drop-shadow(0 0 40px rgba(0, 255, 255, 0.6))
+              drop-shadow(0 0 60px rgba(255, 176, 0, 0.4));
     }
 
     @keyframes shimmer {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
+    }
+
+    /* Sparkles around the logo */
+    .logo-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .sparkle {
+      position: absolute;
+      font-size: 1.5rem;
+      animation: sparkle 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .sparkle:nth-child(1) { top: 10%; left: -5%; animation-delay: 0s; }
+    .sparkle:nth-child(2) { top: 20%; right: -5%; animation-delay: 0.5s; }
+    .sparkle:nth-child(3) { bottom: 20%; left: -3%; animation-delay: 1s; }
+    .sparkle:nth-child(4) { bottom: 10%; right: -3%; animation-delay: 1.5s; }
+    .sparkle:nth-child(5) { top: 50%; left: -8%; animation-delay: 2s; }
+    .sparkle:nth-child(6) { top: 50%; right: -8%; animation-delay: 2.5s; }
+
+    @keyframes sparkle {
+      0%, 100% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1) rotate(180deg);
+      }
     }
 
     .tagline {
@@ -194,12 +227,22 @@
 </head>
 <body>
   <div class="landing-container">
-    <!-- ASCII Art Logo with Prismatic Shimmer -->
-    <pre id="ascii-logo">__        __          _     _
+    <!-- ASCII Art Logo with Prismatic Shimmer and Sparkles -->
+    <div style="text-align: center;">
+      <div class="logo-wrapper" style="display: inline-block; position: relative;">
+        <span class="sparkle">✨</span>
+        <span class="sparkle">✨</span>
+        <span class="sparkle">✨</span>
+        <span class="sparkle">✨</span>
+        <span class="sparkle">✨</span>
+        <span class="sparkle">✨</span>
+        <pre id="ascii-logo">__        __          _     _
 \ \      / /__   ___ | |__ (_) ___
  \ \ /\ / / _ \ / _ \| '_ \| |/ _ \
   \ V  V / (_) | (_) | |_) | |  __/
    \_/\_/ \___/ \___/|_.__/|_|\___| </pre>
+      </div>
+    </div>
 
     <div class="tagline">anti-loneliness • one friend at a time</div>
 
