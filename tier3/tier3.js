@@ -18,14 +18,14 @@ const questionBank = [
   "How do you want to be remembered?",
   "What do you hope people say about you when you're not around?",
   "What does 'home' mean to you?",
-  "When do you feel most loved?",
-  "What's a romantic gesture you secretly love?",
-  "What's your love language, and how do you express it?",
-  "How do you know when you're falling for someone?",
-  "Have you ever had a crush that changed how you see people?",
+  "When do you feel most like someone cares about you?",
+  "What's a caring gesture you secretly love?",
+  "How do you show people you care about them? Or, what kind of gestures make you feel most appreciated?",
+  "How do you know when you click with someone? Or, how do you know when you want to be closer friends with someone?",
+  "Have you ever had a meeting that completely changed how you see people?",
   "What's something you've learned from past relationships?",
-  "Do you believe in soulmates?",
-  "What does a healthy relationship look like to you?",
+  "Do you believe in the kind of instant connections with people where you just naturally 'click'? Have you ever experienced this?",
+  "What does a healthy relationship/friendship look like to you?",
   "What's a photo you wish you had taken?",
   "Do you have any little rituals that bring you peace?",
   "If you could guarantee one thing for your future, what would it be?",
@@ -42,7 +42,7 @@ const questionBank = [
   "If we became close friends, what's something important you'd want me to understand about you?",
   "What's one thing you'd genuinely enjoy doing together if we were friends?",
   "What's a quality you admire about how we've interacted with each other so far?",
-  "Share a personal problem you feel comfortable asking me advice about—and tell me how you'd like me to respond (advice, reflection, support?).",
+  "Share a personal problem you feel comfortable asking me advice about, and tell me how you'd like me to respond (advice, reflection, support?).",
   "What's a belief you held strongly that changed over time?",
   "What's one thing you never get tired of talking about?",
   "When have you felt the most brave?",
@@ -54,7 +54,7 @@ const questionBank = [
   "What's a memory that always brings you comfort?",
   "If your younger self met you now, what would they say?",
   "What's a truth you've learned the hard way?",
-  "What's something you've forgiven yourself for?"
+  "What's something you've forgiven yourself for? Or, what's something you need to fogive yourself for?"
 ];
 
 let questions = [];
