@@ -323,8 +323,13 @@ exports.advancedMatchmaker = onValueCreated(
           const codeSnap = await codeRef.once("value");
           const codeData = codeSnap.val();
 
-          if (!codeData || codeData.used) {
-            logger.warn(`Referral code ${newQueuedUserData.referralCodeID} is invalid or already used`);
+          if (!codeData) {
+            logger.warn(`Referral code ${newQueuedUserData.referralCodeID} does not exist`);
+            return null;
+          }
+
+          if (codeData.matchID) {
+            logger.warn(`Referral code ${newQueuedUserData.referralCodeID} has already been matched`);
             return null;
           }
 

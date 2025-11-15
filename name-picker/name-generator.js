@@ -566,10 +566,19 @@ if (validateCodeBtn) {
         return;
       }
 
-      // Check if already used
-      if (codeData.used) {
+      // Check if already used (matched)
+      if (codeData.matchID) {
         if (validationMessage) {
           validationMessage.textContent = '❌ This code has already been used';
+          validationMessage.style.color = '#ff6666';
+        }
+        return;
+      }
+
+      // Check if already claimed by someone else
+      if (codeData.claimedBy && codeData.claimedBy !== currentUserId) {
+        if (validationMessage) {
+          validationMessage.textContent = '❌ This code is being used by someone else';
           validationMessage.style.color = '#ff6666';
         }
         return;
@@ -584,11 +593,11 @@ if (validateCodeBtn) {
         return;
       }
 
-      // Valid code! Mark as used and save to user
+      // Valid code! Save claimer info but DON'T mark as used yet
+      // (matchmaker will mark it as used when it creates the match)
       await update(codeRef, {
-        used: true,
-        usedBy: currentUserId,
-        usedAt: Date.now()
+        claimedBy: currentUserId,
+        claimedAt: Date.now()
       });
 
       const userRef = ref(db, `users/${currentUserId}`);
