@@ -371,11 +371,49 @@ if (document.getElementById('name-options')) {
     }
 }
 
-// Confirm button logic
+// Confirm button logic - shows referral section
 if (confirmButton) {
-  confirmButton.onclick = async () => {
+  confirmButton.onclick = () => {
     if (!selected) {
       alert('Please pick a name.');
+      return;
+    }
+
+    // Hide name selection UI
+    if (nameOptions) nameOptions.style.display = 'none';
+    if (rerollBtn) rerollBtn.parentElement.style.display = 'none';
+    if (showSavedBtn) showSavedBtn.style.display = 'none';
+    if (confirmButton) confirmButton.parentElement.style.display = 'none';
+    if (rollsLeft) rollsLeft.style.display = 'none';
+
+    const modeButtonsContainer = document.getElementById('mode-buttons');
+    if (modeButtonsContainer) modeButtonsContainer.style.display = 'none';
+
+    // Update selected name message
+    if (selectedNameP) {
+      selectedNameP.style.fontSize = '1.5rem';
+      selectedNameP.style.marginBottom = '2rem';
+    }
+
+    // Show referral section and continue button
+    const referralSection = document.getElementById('referral-section');
+    if (referralSection) {
+      referralSection.style.display = 'block';
+      referralSection.style.opacity = '1'; // Make it fully visible
+      referralSection.style.borderColor = '#33ff33'; // Make border brighter
+    }
+
+    const continueBtn = document.getElementById('continue-main-btn');
+    if (continueBtn) continueBtn.style.display = 'block';
+  };
+}
+
+// Continue button logic - saves name and proceeds
+const continueBtn = document.getElementById('continue-main-btn');
+if (continueBtn) {
+  continueBtn.onclick = async () => {
+    if (!selected) {
+      alert('Please pick a name first.');
       return;
     }
 
