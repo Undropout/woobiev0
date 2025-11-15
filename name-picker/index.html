@@ -9,17 +9,70 @@
 <body class="normal-mode">
   <div class="container">
     <h1>🎲 Pick Your Woobie Name 🎲</h1>
+
+    <!-- Welcome explanation -->
+    <div style="background-color: #1a1a1a; border: 1px solid #33ff33; border-radius: 6px; padding: 1.25rem; margin-bottom: 2rem; text-align: center;">
+      <p style="margin-bottom: 0.75rem; line-height: 1.8;">
+        Welcome! We anonymize everyone with fun Woobie names to keep things light and mysterious at first. Don't worry - you'll share as much or as little as you want with your match later.
+      </p>
+      <p style="margin-bottom: 0; line-height: 1.8; color: #00ffff;">
+        For now, pick a name that makes you smile! Try clicking the different modes below to see what the generator creates for you.
+      </p>
+    </div>
+
     <div id="mode-buttons">
       <button data-mode="normal" class="woobie-button">Normal</button>
       <button data-mode="prismatic" class="woobie-button premium">Prismatic ✨</button>
       <button data-mode="neon" class="woobie-button premium">Neon 💡</button>
       <button data-mode="cosmic" class="woobie-button premium">Cosmic 🌌</button>
     </div>
+
     <div id="name-options" class="option-grid"></div>
-    <button id="reroll" class="woobie-button">🎰 Reroll 🎰</button>
-    <p id="selected-name"></p>
-    <button id="confirm" class="woobie-button">✅ This is me</button>
-    <button id="logout-button" class="woobie-button" style="margin-top: 1rem;">🚪 Log out</button>
+
+    <!-- Centered Reroll Button -->
+    <div style="text-align: center; margin: 1.5rem 0;">
+      <button id="reroll" class="woobie-button" style="font-size: 1.1rem; padding: 0.75rem 2rem;">🎰 Reroll 🎰</button>
+    </div>
+
+    <p id="selected-name" style="text-align: center; font-size: 1.1rem; margin: 1rem 0;"></p>
+
+    <!-- Larger, Centered "This is me" Button -->
+    <div style="text-align: center; margin: 1.5rem 0;">
+      <button id="confirm" class="woobie-button" style="font-size: 1.3rem; padding: 1rem 3rem; background-color: #1a4d1a; border: 2px solid #33ff33;">✅ This is me</button>
+    </div>
+
+    <!-- Main continue button -->
+    <button id="continue-main-btn" class="woobie-button" style="display:none; margin-top: 1rem; font-size: 1.2rem;">Begin Journey →</button>
+
+    <!-- Referral Code Section (hidden by default, less prominent) -->
+    <div id="referral-section" style="display:none; margin-top: 3rem; padding: 0.5rem; border: 1px solid #444; border-radius: 5px; opacity: 0.6;">
+      <details>
+        <summary style="color: #777; cursor: pointer; padding: 0.5rem; font-size: 0.9rem;">Optional: Match with a specific friend</summary>
+        <div style="margin-top: 1rem;">
+          <button id="generate-code-btn" class="woobie-button" style="font-size: 0.9rem;">🔗 Generate Code</button>
+          <button id="enter-code-btn" class="woobie-button" style="font-size: 0.9rem;">🔑 Enter Code</button>
+
+          <!-- Code generation result -->
+          <div id="code-result" style="display:none; margin-top: 1rem;">
+            <p style="color: #00ffff;">Your friend code:</p>
+            <p id="generated-code" style="color: #33ff33; font-size: 1.2rem; font-weight: bold;"></p>
+            <button id="copy-code-btn" class="woobie-button">📋 Copy Code</button>
+            <button id="proceed-with-code-btn" class="woobie-button">✅ Proceed</button>
+          </div>
+
+          <!-- Code entry form -->
+          <div id="code-entry" style="display:none; margin-top: 1rem;">
+            <label for="friend-code-input" style="color: #00ffff;">Enter your friend's code:</label>
+            <input type="text" id="friend-code-input" style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; background: #000; border: 2px solid #33ff33; color: #33ff33;" placeholder="purple-cosmic-dolphin">
+            <button id="validate-code-btn" class="woobie-button" style="margin-top: 0.5rem;">✅ Validate</button>
+            <button id="cancel-entry-btn" class="woobie-button" style="margin-top: 0.5rem;">❌ Cancel</button>
+            <p id="validation-message" style="margin-top: 0.5rem;"></p>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <button id="logout-button" class="woobie-button" style="margin-top: 3rem; font-size: 0.85rem; opacity: 0.5; background-color: transparent; border: 1px solid #444;">🚪 Log out</button>
   </div>
 
   <script>
@@ -77,5 +130,6 @@
 
   <script type="module" src="./name-generator.js"></script>
   <script type="module" src="../shared/logout.js"></script>
+  <script type="module" src="../shared/feedback.js"></script>
 </body>
 </html>
